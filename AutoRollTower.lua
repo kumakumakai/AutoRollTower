@@ -1,3 +1,7 @@
+--==================================================
+-- AUTO ROLL & TOWER GUI
+--==================================================
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -17,7 +21,8 @@ local settings = {
     AutoTower = false,
     TowerPause = false,
     TowerEnd = false,
-    PrestigeTower = false
+    PrestigeTower = false,
+    AutoHideBattle = false
 }
 
 --==================================================
@@ -63,7 +68,7 @@ end
 local REJOIN_TIME = 8 * 60
 
 local SCRIPT_URL =
-    "https://raw.githubusercontent.com/kumakumakai/AutoRollTower/main/AutoRollTower.lua"
+    "https://raw.githubusercontent.com/kumakumakai/AutoRollTower/refs/heads/main/AutoRollTower.lua"
 
 --==================================================
 -- QUEUE SCRIPT FOR NEXT SERVER
@@ -83,7 +88,7 @@ local function queueTeleportScript()
     local queuedCode = [[
         task.wait(5)
 
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/kumakumakai/AutoRollTower/main/AutoRollTower.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/kumakumakai/AutoRollTower/refs/heads/main/AutoRollTower.lua"))()
     ]]
 
     pcall(function()
@@ -115,10 +120,10 @@ gui.Parent = player.PlayerGui
 
 local frame = Instance.new("Frame")
 
-frame.Size = UDim2.new(0, 220, 0, 290)
+frame.Size = UDim2.new(0, 220, 0, 335)
 
 frame.Position =
-    UDim2.new(0.5, -110, 0.5, -145)
+    UDim2.new(0.5, -110, 0.5, -167)
 
 frame.BackgroundColor3 =
     Color3.fromRGB(25, 25, 25)
@@ -215,6 +220,9 @@ local endToggle =
 local prestigeToggle =
     createToggle("Prestige Tower", 220)
 
+local hideBattleToggle =
+    createToggle("Auto Hide Battle", 265)
+
 --==================================================
 -- UPDATE TOGGLE
 --==================================================
@@ -273,6 +281,12 @@ updateToggle(
     prestigeToggle,
     "Prestige Tower",
     settings.PrestigeTower
+)
+
+updateToggle(
+    hideBattleToggle,
+    "Auto Hide Battle",
+    settings.AutoHideBattle
 )
 
 --==================================================
@@ -348,6 +362,21 @@ prestigeToggle.MouseButton1Click:Connect(function()
         prestigeToggle,
         "Prestige Tower",
         settings.PrestigeTower
+    )
+
+    saveSettings()
+
+end)
+
+hideBattleToggle.MouseButton1Click:Connect(function()
+
+    settings.AutoHideBattle =
+        not settings.AutoHideBattle
+
+    updateToggle(
+        hideBattleToggle,
+        "Auto Hide Battle",
+        settings.AutoHideBattle
     )
 
     saveSettings()
@@ -465,6 +494,33 @@ task.spawn(function()
 end)
 
 --==================================================
+-- AUTO HIDE BATTLE
+--==================================================
+
+task.spawn(function()
+
+    while gui.Parent do
+
+        local battleUI =
+            player.PlayerGui:FindFirstChild("BattleUI")
+
+        if battleUI then
+
+            if settings.AutoHideBattle then
+                battleUI.Enabled = false
+            else
+                battleUI.Enabled = true
+            end
+
+        end
+
+        task.wait(0.5)
+
+    end
+
+end)
+
+--==================================================
 -- G = SHOW / HIDE GUI
 --==================================================
 
@@ -543,25 +599,21 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 --==================================================
--- START AUTO REJOIN TIMER
+-- AUTO REJOIN
 --==================================================
 
 task.spawn(function()
 
-    -- Queue the script before teleporting.
-
+    -- Queue the script for the next server.
     queueTeleportScript()
 
     -- Wait 8 minutes.
-
     task.wait(REJOIN_TIME)
 
-    -- Save settings before leaving.
-
+    -- Save current settings.
     saveSettings()
 
     -- Rejoin the same experience.
-
     pcall(function()
 
         TeleportService:Teleport(
