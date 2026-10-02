@@ -39,7 +39,7 @@ local settings = {
 }
 
 --==================================================
--- SAVE / LOAD
+-- SAVE SETTINGS
 --==================================================
 
 local function saveSettings()
@@ -55,6 +55,10 @@ local function saveSettings()
     end)
 end
 
+--==================================================
+-- LOAD SETTINGS
+--==================================================
+
 local function loadSettings()
     if not isfile or not readfile then
         return
@@ -65,6 +69,7 @@ local function loadSettings()
     end
 
     pcall(function()
+
         local data = HttpService:JSONDecode(
             readfile(SETTINGS_FILE)
         )
@@ -74,14 +79,20 @@ local function loadSettings()
         end
 
         for key in pairs(settings) do
-            if key ~= "Crafting" and data[key] ~= nil then
+
+            if key ~= "Crafting"
+                and data[key] ~= nil then
+
                 settings[key] = data[key]
             end
         end
 
         if type(data.Crafting) == "table" then
+
             for potionName in pairs(settings.Crafting) do
+
                 if data.Crafting[potionName] ~= nil then
+
                     settings.Crafting[potionName] =
                         data.Crafting[potionName]
                 end
@@ -129,18 +140,22 @@ if oldGui then
 end
 
 --==================================================
--- MAIN GUI
+-- GUI
 --==================================================
 
 local gui = Instance.new("ScreenGui")
+
 gui.Name = "AutoRollTowerGUI"
 gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
 local frame = Instance.new("Frame")
 
-frame.Size = UDim2.new(0, 220, 0, 380)
-frame.Position = UDim2.new(0.5, -110, 0.5, -190)
+frame.Size =
+    UDim2.new(0, 220, 0, 380)
+
+frame.Position =
+    UDim2.new(0.5, -110, 0.5, -190)
 
 frame.BackgroundColor3 =
     Color3.fromRGB(25, 25, 25)
@@ -149,7 +164,10 @@ frame.BorderSizePixel = 0
 frame.Parent = gui
 
 local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius = UDim.new(0, 8)
+
+frameCorner.CornerRadius =
+    UDim.new(0, 8)
+
 frameCorner.Parent = frame
 
 --==================================================
@@ -158,15 +176,20 @@ frameCorner.Parent = frame
 
 local title = Instance.new("TextLabel")
 
-title.Size = UDim2.new(1, 0, 0, 35)
+title.Size =
+    UDim2.new(1, 0, 0, 35)
+
 title.BackgroundTransparency = 1
 
-title.Text = "Auto Roll / Tower"
+title.Text =
+    "Auto Roll / Tower"
+
 title.TextColor3 =
     Color3.fromRGB(255, 255, 255)
 
 title.TextSize = 17
 title.Font = Enum.Font.SourceSansBold
+
 title.Parent = frame
 
 --==================================================
@@ -199,8 +222,8 @@ end)
 
 UserInputService.InputChanged:Connect(function(input)
 
-    if dragging and
-        input.UserInputType ==
+    if dragging
+        and input.UserInputType ==
         Enum.UserInputType.MouseMovement then
 
         local delta =
@@ -221,7 +244,8 @@ end)
 
 local function createToggle(text, y)
 
-    local button = Instance.new("TextButton")
+    local button =
+        Instance.new("TextButton")
 
     button.Size =
         UDim2.new(1, -20, 0, 35)
@@ -239,17 +263,26 @@ local function createToggle(text, y)
 
     button.TextSize = 15
     button.Font = Enum.Font.SourceSans
+
     button.Text = text
     button.Parent = frame
 
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
+    local corner =
+        Instance.new("UICorner")
+
+    corner.CornerRadius =
+        UDim.new(0, 6)
+
     corner.Parent = button
 
     return button
 end
 
-local function updateButton(button, name, enabled)
+local function updateButton(
+    button,
+    name,
+    enabled
+)
 
     if enabled then
 
@@ -270,7 +303,7 @@ local function updateButton(button, name, enabled)
 end
 
 --==================================================
--- MAIN BUTTONS
+-- MAIN TOGGLES
 --==================================================
 
 local rollToggle =
@@ -295,7 +328,7 @@ local weatherToggle =
     createToggle("Weather Potion", 310)
 
 --==================================================
--- INITIAL STATES
+-- INITIAL BUTTON STATES
 --==================================================
 
 updateButton(
@@ -341,7 +374,7 @@ updateButton(
 )
 
 --==================================================
--- MAIN TOGGLES
+-- TOGGLE CONNECTIONS
 --==================================================
 
 rollToggle.MouseButton1Click:Connect(function()
@@ -615,7 +648,8 @@ local potionNames = {
     "Weather Reroll"
 }
 
-local craftingHeader = Instance.new("TextButton")
+local craftingHeader =
+    Instance.new("TextButton")
 
 craftingHeader.Size =
     UDim2.new(1, -20, 0, 35)
@@ -639,13 +673,44 @@ craftingHeader.Text =
 
 craftingHeader.Parent = frame
 
-local craftingCorner = Instance.new("UICorner")
+local craftingCorner =
+    Instance.new("UICorner")
 
 craftingCorner.CornerRadius =
     UDim.new(0, 6)
 
 craftingCorner.Parent =
     craftingHeader
+
+--==================================================
+-- SCROLLING CRAFTING AREA
+--==================================================
+
+local craftingScroll =
+    Instance.new("ScrollingFrame")
+
+craftingScroll.Size =
+    UDim2.new(1, -20, 0, 330)
+
+craftingScroll.Position =
+    UDim2.new(0, 10, 0, 395)
+
+craftingScroll.BackgroundTransparency = 1
+craftingScroll.BorderSizePixel = 0
+
+craftingScroll.ScrollBarThickness = 5
+
+craftingScroll.CanvasSize =
+    UDim2.new(0, 0, 0, 10 * 37)
+
+craftingScroll.ScrollingDirection =
+    Enum.ScrollingDirection.Y
+
+craftingScroll.AutomaticCanvasSize =
+    Enum.AutomaticSize.None
+
+craftingScroll.Visible = false
+craftingScroll.Parent = frame
 
 --==================================================
 -- CRAFTING BUTTONS
@@ -658,14 +723,14 @@ for index, potionName
         Instance.new("TextButton")
 
     button.Size =
-        UDim2.new(1, -20, 0, 32)
+        UDim2.new(1, -5, 0, 32)
 
     button.Position =
         UDim2.new(
             0,
-            10,
             0,
-            395 + ((index - 1) * 37)
+            0,
+            (index - 1) * 37
         )
 
     button.BackgroundColor3 =
@@ -685,8 +750,8 @@ for index, potionName
         settings.Crafting[potionName]
     )
 
-    button.Visible = false
-    button.Parent = frame
+    button.Parent =
+        craftingScroll
 
     local corner =
         Instance.new("UICorner")
@@ -715,7 +780,7 @@ for index, potionName
 end
 
 --==================================================
--- CRAFTING DROPDOWN
+-- CRAFTING OPEN / CLOSE
 --==================================================
 
 craftingHeader.MouseButton1Click:Connect(function()
@@ -728,26 +793,17 @@ craftingHeader.MouseButton1Click:Connect(function()
         craftingHeader.Text =
             "Crafting ▲"
 
-        for _, button
-            in pairs(craftingButtons) do
+        craftingScroll.Visible = true
 
-            button.Visible = true
-        end
-
-        -- Extra space for Weather Reroll
         frame.Size =
-            UDim2.new(0, 220, 0, 775)
+            UDim2.new(0, 220, 0, 735)
 
     else
 
         craftingHeader.Text =
             "Crafting ▼"
 
-        for _, button
-            in pairs(craftingButtons) do
-
-            button.Visible = false
-        end
+        craftingScroll.Visible = false
 
         frame.Size =
             UDim2.new(0, 220, 0, 380)
@@ -970,6 +1026,6 @@ print("Auto Roll / Tower GUI loaded.")
 print("Auto Tower: 0.02 seconds")
 print("Weather Potion: 0.5 seconds")
 print("Crafting: 0.1 seconds")
-print("Weather Reroll is available in Crafting.")
+print("Weather Reroll added to Crafting.")
 print("Auto Rejoin: 10 minutes")
 print("Press B to hide/show the GUI.")
