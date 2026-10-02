@@ -6,7 +6,7 @@ local TeleportService = game:GetService("TeleportService")
 
 local player = Players.LocalPlayer
 
-local SETTINGS_FILE = "AutoRollTower_Settings.json"
+local SETTINGS_FILE = "AutoRollTower_Settings_" .. tostring(player.UserId) .. ".json"
 
 local settings = {
     AutoRoll = false,
