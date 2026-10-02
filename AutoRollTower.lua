@@ -16,6 +16,7 @@ local settings = {
     PrestigeTower = false,
     AutoHideBattle = false,
     WeatherPotion = false,
+    FiveWeatherPotion = false,
 
     BossFarming = {
         symbolic_man = { Hard = false, Extreme = false, Nightmare = false },
@@ -151,10 +152,10 @@ gui.Parent = player.PlayerGui
 local frame = Instance.new("Frame")
 
 frame.Size =
-    UDim2.new(0, 220, 0, 420)
+    UDim2.new(0, 240, 0, 480)
 
 frame.Position =
-    UDim2.new(0.5, -110, 0.5, -190)
+    UDim2.new(0.5, -120, 0.5, -230)
 
 frame.BackgroundColor3 =
     Color3.fromRGB(25, 25, 25)
@@ -310,6 +311,9 @@ local hideBattleToggle =
 local weatherToggle =
     createToggle("Weather Potion", 350)
 
+local fiveWeatherToggle =
+    createToggle("5 Weather Potion", 395)
+
 updateButton(
     rollToggle,
     "Auto Roll",
@@ -350,6 +354,12 @@ updateButton(
     weatherToggle,
     "Weather Potion",
     settings.WeatherPotion
+)
+
+updateButton(
+    fiveWeatherToggle,
+    "5 Weather Potion",
+    settings.FiveWeatherPotion
 )
 
 rollToggle.MouseButton1Click:Connect(function()
@@ -445,6 +455,20 @@ weatherToggle.MouseButton1Click:Connect(function()
         weatherToggle,
         "Weather Potion",
         settings.WeatherPotion
+    )
+
+    saveSettings()
+end)
+
+fiveWeatherToggle.MouseButton1Click:Connect(function()
+
+    settings.FiveWeatherPotion =
+        not settings.FiveWeatherPotion
+
+    updateButton(
+        fiveWeatherToggle,
+        "5 Weather Potion",
+        settings.FiveWeatherPotion
     )
 
     saveSettings()
@@ -569,12 +593,36 @@ task.spawn(function()
     end
 end)
 
+task.spawn(function()
+
+    while gui.Parent do
+
+        if settings.FiveWeatherPotion then
+
+            pcall(function()
+
+                UseItem:FireServer(
+                    "Weather Reroll",
+                    5
+                )
+
+            end)
+
+            task.wait(0.5)
+
+        else
+
+            task.wait(0.1)
+        end
+    end
+end)
+
 local craftingOpen = false
 local craftingHeader
 local craftingScroll
 
 local mainTab = Instance.new("TextButton")
-mainTab.Size = UDim2.new(0, 95, 0, 32)
+mainTab.Size = UDim2.new(0, 105, 0, 32)
 mainTab.Position = UDim2.new(0, 10, 0, 40)
 mainTab.BackgroundColor3 = Color3.fromRGB(40, 110, 55)
 mainTab.BorderSizePixel = 0
@@ -585,8 +633,8 @@ mainTab.Text = "Main"
 mainTab.Parent = frame
 
 local bossTab = Instance.new("TextButton")
-bossTab.Size = UDim2.new(0, 95, 0, 32)
-bossTab.Position = UDim2.new(0, 115, 0, 40)
+bossTab.Size = UDim2.new(0, 105, 0, 32)
+bossTab.Position = UDim2.new(0, 125, 0, 40)
 bossTab.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 bossTab.BorderSizePixel = 0
 bossTab.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -612,7 +660,7 @@ local mainContent = {
 }
 
 local bossScroll = Instance.new("ScrollingFrame")
-bossScroll.Size = UDim2.new(1, -20, 0, 330)
+bossScroll.Size = UDim2.new(1, -20, 0, 380)
 bossScroll.Position = UDim2.new(0, 10, 0, 80)
 bossScroll.BackgroundTransparency = 1
 bossScroll.BorderSizePixel = 0
@@ -691,8 +739,8 @@ local function setTab(tab)
         or Color3.fromRGB(45, 45, 45)
 
     frame.Size = bossVisible
-        and UDim2.new(0, 220, 0, 420)
-        or UDim2.new(0, 220, 0, craftingOpen and 775 or 420)
+        and UDim2.new(0, 240, 0, 480)
+        or UDim2.new(0, 240, 0, craftingOpen and 820 or 480)
 end
 
 mainTab.MouseButton1Click:Connect(function()
@@ -727,7 +775,7 @@ craftingHeader.Size =
     UDim2.new(1, -20, 0, 35)
 
 craftingHeader.Position =
-    UDim2.new(0, 10, 0, 395)
+    UDim2.new(0, 10, 0, 440)
 
 craftingHeader.BackgroundColor3 =
     Color3.fromRGB(45, 45, 45)
@@ -761,7 +809,7 @@ craftingScroll.Size =
     UDim2.new(1, -20, 0, 330)
 
 craftingScroll.Position =
-    UDim2.new(0, 10, 0, 435)
+    UDim2.new(0, 10, 0, 480)
 
 craftingScroll.BackgroundTransparency = 1
 craftingScroll.BorderSizePixel = 0
@@ -847,7 +895,7 @@ craftingHeader.MouseButton1Click:Connect(function()
         craftingScroll.Visible = true
 
         frame.Size =
-            UDim2.new(0, 220, 0, 775)
+            UDim2.new(0, 240, 0, 820)
 
     else
 
@@ -857,7 +905,7 @@ craftingHeader.MouseButton1Click:Connect(function()
         craftingScroll.Visible = false
 
         frame.Size =
-            UDim2.new(0, 220, 0, 380)
+            UDim2.new(0, 240, 0, 480)
     end
 end)
 
@@ -1019,7 +1067,7 @@ UserInputService.InputBegan:Connect(function(
 end)
 
 local REJOIN_TIME =
-    8 * 60
+    15 * 60
 
 local teleporting = false
 
