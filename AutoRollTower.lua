@@ -11,8 +11,6 @@ local SETTINGS_FILE = "AutoRollTower_Settings.json"
 local settings = {
     AutoRoll = false,
     AutoTower = false,
-    TowerPause = false,
-    TowerEnd = false,
     PrestigeTower = false,
     AutoHideBattle = false,
     WeatherPotion = false,
@@ -117,12 +115,6 @@ local RollRequest =
 
 local RunInfTower =
     ReplicatedStorage:WaitForChild("runInfTower")
-
-local FloorPromptEvent =
-    ReplicatedStorage:WaitForChild("floorPromptEvent")
-
-local InfinityTowerAction =
-    ReplicatedStorage:WaitForChild("infinityTowerAction")
 
 local RunPrestigeTower =
     ReplicatedStorage:WaitForChild("runPrestigeTower")
@@ -296,12 +288,6 @@ local rollToggle =
 local towerToggle =
     createToggle("Auto Tower", 125)
 
-local pauseToggle =
-    createToggle("Tower Pause", 170)
-
-local endToggle =
-    createToggle("Tower End", 215)
-
 local prestigeToggle =
     createToggle("Prestige Tower", 260)
 
@@ -324,18 +310,6 @@ updateButton(
     towerToggle,
     "Auto Tower",
     settings.AutoTower
-)
-
-updateButton(
-    pauseToggle,
-    "Tower Pause",
-    settings.TowerPause
-)
-
-updateButton(
-    endToggle,
-    "Tower End",
-    settings.TowerEnd
 )
 
 updateButton(
@@ -385,34 +359,6 @@ towerToggle.MouseButton1Click:Connect(function()
         towerToggle,
         "Auto Tower",
         settings.AutoTower
-    )
-
-    saveSettings()
-end)
-
-pauseToggle.MouseButton1Click:Connect(function()
-
-    settings.TowerPause =
-        not settings.TowerPause
-
-    updateButton(
-        pauseToggle,
-        "Tower Pause",
-        settings.TowerPause
-    )
-
-    saveSettings()
-end)
-
-endToggle.MouseButton1Click:Connect(function()
-
-    settings.TowerEnd =
-        not settings.TowerEnd
-
-    updateButton(
-        endToggle,
-        "Tower End",
-        settings.TowerEnd
     )
 
     saveSettings()
@@ -504,44 +450,6 @@ task.spawn(function()
             end)
 
             task.wait(0.001)
-
-        else
-
-            task.wait(0.1)
-        end
-    end
-end)
-
-task.spawn(function()
-
-    while gui.Parent do
-
-        if settings.TowerPause then
-
-            pcall(function()
-                FloorPromptEvent:FireServer("pause")
-            end)
-
-            task.wait(0.1)
-
-        else
-
-            task.wait(0.1)
-        end
-    end
-end)
-
-task.spawn(function()
-
-    while gui.Parent do
-
-        if settings.TowerEnd then
-
-            pcall(function()
-                InfinityTowerAction:FireServer("end")
-            end)
-
-            task.wait(0.1)
 
         else
 
@@ -652,8 +560,6 @@ end
 local mainContent = {
     rollToggle,
     towerToggle,
-    pauseToggle,
-    endToggle,
     prestigeToggle,
     hideBattleToggle,
     weatherToggle
