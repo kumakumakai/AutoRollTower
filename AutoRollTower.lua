@@ -32,7 +32,9 @@ local settings = {
 
         ["Speed Potion I"] = false,
         ["Speed Potion II"] = false,
-        ["Speed Potion III"] = false
+        ["Speed Potion III"] = false,
+
+        ["Weather Reroll"] = false
     }
 }
 
@@ -71,7 +73,7 @@ local function loadSettings()
             return
         end
 
-        for key, value in pairs(settings) do
+        for key in pairs(settings) do
             if key ~= "Crafting" and data[key] ~= nil then
                 settings[key] = data[key]
             end
@@ -137,7 +139,6 @@ gui.Parent = player.PlayerGui
 
 local frame = Instance.new("Frame")
 
--- Extra height for Weather Potion
 frame.Size = UDim2.new(0, 220, 0, 380)
 frame.Position = UDim2.new(0.5, -110, 0.5, -190)
 
@@ -148,8 +149,7 @@ frame.BorderSizePixel = 0
 frame.Parent = gui
 
 local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius =
-    UDim.new(0, 8)
+frameCorner.CornerRadius = UDim.new(0, 8)
 frameCorner.Parent = frame
 
 --==================================================
@@ -158,21 +158,15 @@ frameCorner.Parent = frame
 
 local title = Instance.new("TextLabel")
 
-title.Size =
-    UDim2.new(1, 0, 0, 35)
-
+title.Size = UDim2.new(1, 0, 0, 35)
 title.BackgroundTransparency = 1
 
 title.Text = "Auto Roll / Tower"
-
 title.TextColor3 =
     Color3.fromRGB(255, 255, 255)
 
 title.TextSize = 17
-
-title.Font =
-    Enum.Font.SourceSansBold
-
+title.Font = Enum.Font.SourceSansBold
 title.Parent = frame
 
 --==================================================
@@ -244,19 +238,12 @@ local function createToggle(text, y)
         Color3.fromRGB(255, 255, 255)
 
     button.TextSize = 15
-
-    button.Font =
-        Enum.Font.SourceSans
-
+    button.Font = Enum.Font.SourceSans
     button.Text = text
-
     button.Parent = frame
 
     local corner = Instance.new("UICorner")
-
-    corner.CornerRadius =
-        UDim.new(0, 6)
-
+    corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = button
 
     return button
@@ -505,6 +492,7 @@ end)
 
 --==================================================
 -- TOWER PAUSE
+-- 0.1 SECONDS
 --==================================================
 
 task.spawn(function()
@@ -528,6 +516,7 @@ end)
 
 --==================================================
 -- TOWER END
+-- 0.1 SECONDS
 --==================================================
 
 task.spawn(function()
@@ -551,6 +540,7 @@ end)
 
 --==================================================
 -- PRESTIGE TOWER
+-- 0.1 SECONDS
 --==================================================
 
 task.spawn(function()
@@ -609,6 +599,7 @@ local craftingOpen = false
 local craftingButtons = {}
 
 local potionNames = {
+
     "Luck Potion I",
     "Luck Potion II",
     "Luck Potion III",
@@ -619,7 +610,9 @@ local potionNames = {
 
     "Speed Potion I",
     "Speed Potion II",
-    "Speed Potion III"
+    "Speed Potion III",
+
+    "Weather Reroll"
 }
 
 local craftingHeader = Instance.new("TextButton")
@@ -639,9 +632,7 @@ craftingHeader.TextColor3 =
     Color3.fromRGB(255, 255, 255)
 
 craftingHeader.TextSize = 15
-
-craftingHeader.Font =
-    Enum.Font.SourceSansBold
+craftingHeader.Font = Enum.Font.SourceSansBold
 
 craftingHeader.Text =
     "Crafting ▼"
@@ -657,7 +648,7 @@ craftingCorner.Parent =
     craftingHeader
 
 --==================================================
--- CRAFT BUTTONS
+-- CRAFTING BUTTONS
 --==================================================
 
 for index, potionName
@@ -686,9 +677,7 @@ for index, potionName
         Color3.fromRGB(255, 255, 255)
 
     button.TextSize = 14
-
-    button.Font =
-        Enum.Font.SourceSans
+    button.Font = Enum.Font.SourceSans
 
     updateButton(
         button,
@@ -745,8 +734,9 @@ craftingHeader.MouseButton1Click:Connect(function()
             button.Visible = true
         end
 
+        -- Extra space for Weather Reroll
         frame.Size =
-            UDim2.new(0, 220, 0, 735)
+            UDim2.new(0, 220, 0, 775)
 
     else
 
@@ -920,13 +910,11 @@ end)
 
 --==================================================
 -- AUTO REJOIN
+-- 10 MINUTES
 --==================================================
 
 local REJOIN_TIME =
-    12 * 60
-
-local SCRIPT_URL =
-    "https://raw.githubusercontent.com/kumakumakai/AutoRollTower/refs/heads/main/AutoRollTower.lua"
+    10 * 60
 
 local function queueTeleportScript()
 
@@ -944,7 +932,7 @@ local function queueTeleportScript()
     end
 
     local queuedCode = [[
-        task.wait(10)
+        task.wait(5)
 
         loadstring(game:HttpGet(
             "https://raw.githubusercontent.com/kumakumakai/AutoRollTower/refs/heads/main/AutoRollTower.lua"
@@ -982,4 +970,6 @@ print("Auto Roll / Tower GUI loaded.")
 print("Auto Tower: 0.02 seconds")
 print("Weather Potion: 0.5 seconds")
 print("Crafting: 0.1 seconds")
+print("Weather Reroll is available in Crafting.")
+print("Auto Rejoin: 10 minutes")
 print("Press B to hide/show the GUI.")
