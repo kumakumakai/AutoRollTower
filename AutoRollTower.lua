@@ -490,7 +490,7 @@ task.spawn(function()
                 RollRequest:FireServer()
             end)
 
-            task.wait(0.01)
+            task.wait(0.001)
 
         else
 
@@ -514,7 +514,7 @@ task.spawn(function()
                 RunInfTower:FireServer()
             end)
 
-            task.wait(0.02)
+            task.wait(0.005)
 
         else
 
