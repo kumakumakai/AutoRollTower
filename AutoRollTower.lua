@@ -18,7 +18,22 @@ local settings = {
     TowerPause = false,
     TowerEnd = false,
     PrestigeTower = false,
-    AutoHideBattle = false
+    AutoHideBattle = false,
+    WeatherPotion = false,
+
+    Crafting = {
+        ["Luck Potion I"] = false,
+        ["Luck Potion II"] = false,
+        ["Luck Potion III"] = false,
+
+        ["Battle Potion I"] = false,
+        ["Battle Potion II"] = false,
+        ["Battle Potion III"] = false,
+
+        ["Speed Potion I"] = false,
+        ["Speed Potion II"] = false,
+        ["Speed Potion III"] = false
+    }
 }
 
 --==================================================
@@ -52,10 +67,21 @@ local function loadSettings()
             readfile(SETTINGS_FILE)
         )
 
-        if type(data) == "table" then
-            for key, value in pairs(settings) do
-                if data[key] ~= nil then
-                    settings[key] = data[key]
+        if type(data) ~= "table" then
+            return
+        end
+
+        for key, value in pairs(settings) do
+            if key ~= "Crafting" and data[key] ~= nil then
+                settings[key] = data[key]
+            end
+        end
+
+        if type(data.Crafting) == "table" then
+            for potionName in pairs(settings.Crafting) do
+                if data.Crafting[potionName] ~= nil then
+                    settings.Crafting[potionName] =
+                        data.Crafting[potionName]
                 end
             end
         end
@@ -83,15 +109,26 @@ local InfinityTowerAction =
 local RunPrestigeTower =
     ReplicatedStorage:WaitForChild("runPrestigeTower")
 
+local CraftItem =
+    ReplicatedStorage:WaitForChild("craftItem")
+
+local UseItem =
+    ReplicatedStorage:WaitForChild("useItem")
+
 --==================================================
--- GUI
+-- REMOVE OLD GUI
 --==================================================
 
-local oldGui = player.PlayerGui:FindFirstChild("AutoRollTowerGUI")
+local oldGui =
+    player.PlayerGui:FindFirstChild("AutoRollTowerGUI")
 
 if oldGui then
     oldGui:Destroy()
 end
+
+--==================================================
+-- MAIN GUI
+--==================================================
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "AutoRollTowerGUI"
@@ -99,27 +136,43 @@ gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 335)
-frame.Position = UDim2.new(0.5, -110, 0.5, -167)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+
+-- Extra height for Weather Potion
+frame.Size = UDim2.new(0, 220, 0, 380)
+frame.Position = UDim2.new(0.5, -110, 0.5, -190)
+
+frame.BackgroundColor3 =
+    Color3.fromRGB(25, 25, 25)
+
 frame.BorderSizePixel = 0
 frame.Parent = gui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
-corner.Parent = frame
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius =
+    UDim.new(0, 8)
+frameCorner.Parent = frame
 
 --==================================================
 -- TITLE
 --==================================================
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 35)
+
+title.Size =
+    UDim2.new(1, 0, 0, 35)
+
 title.BackgroundTransparency = 1
+
 title.Text = "Auto Roll / Tower"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+title.TextColor3 =
+    Color3.fromRGB(255, 255, 255)
+
 title.TextSize = 17
-title.Font = Enum.Font.SourceSansBold
+
+title.Font =
+    Enum.Font.SourceSansBold
+
 title.Parent = frame
 
 --==================================================
@@ -131,7 +184,10 @@ local dragStart
 local startPos
 
 title.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+    if input.UserInputType ==
+        Enum.UserInputType.MouseButton1 then
+
         dragging = true
         dragStart = input.Position
         startPos = frame.Position
@@ -139,14 +195,22 @@ title.InputBegan:Connect(function(input)
 end)
 
 title.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+    if input.UserInputType ==
+        Enum.UserInputType.MouseButton1 then
+
         dragging = false
     end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
+
+    if dragging and
+        input.UserInputType ==
+        Enum.UserInputType.MouseMovement then
+
+        local delta =
+            input.Position - dragStart
 
         frame.Position = UDim2.new(
             startPos.X.Scale,
@@ -162,36 +226,64 @@ end)
 --==================================================
 
 local function createToggle(text, y)
+
     local button = Instance.new("TextButton")
 
-    button.Size = UDim2.new(1, -20, 0, 35)
-    button.Position = UDim2.new(0, 10, 0, y)
-    button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    button.Size =
+        UDim2.new(1, -20, 0, 35)
+
+    button.Position =
+        UDim2.new(0, 10, 0, y)
+
+    button.BackgroundColor3 =
+        Color3.fromRGB(45, 45, 45)
+
     button.BorderSizePixel = 0
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    button.TextColor3 =
+        Color3.fromRGB(255, 255, 255)
+
     button.TextSize = 15
-    button.Font = Enum.Font.SourceSans
+
+    button.Font =
+        Enum.Font.SourceSans
+
+    button.Text = text
+
     button.Parent = frame
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
+
+    corner.CornerRadius =
+        UDim.new(0, 6)
+
     corner.Parent = button
 
     return button
 end
 
 local function updateButton(button, name, enabled)
+
     if enabled then
-        button.Text = name .. ": ON"
-        button.BackgroundColor3 = Color3.fromRGB(40, 110, 55)
+
+        button.Text =
+            name .. ": ON"
+
+        button.BackgroundColor3 =
+            Color3.fromRGB(40, 110, 55)
+
     else
-        button.Text = name .. ": OFF"
-        button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+
+        button.Text =
+            name .. ": OFF"
+
+        button.BackgroundColor3 =
+            Color3.fromRGB(45, 45, 45)
     end
 end
 
 --==================================================
--- BUTTONS
+-- MAIN BUTTONS
 --==================================================
 
 local rollToggle =
@@ -212,8 +304,11 @@ local prestigeToggle =
 local hideBattleToggle =
     createToggle("Auto Hide Battle", 265)
 
+local weatherToggle =
+    createToggle("Weather Potion", 310)
+
 --==================================================
--- INITIAL BUTTON STATE
+-- INITIAL STATES
 --==================================================
 
 updateButton(
@@ -252,12 +347,20 @@ updateButton(
     settings.AutoHideBattle
 )
 
+updateButton(
+    weatherToggle,
+    "Weather Potion",
+    settings.WeatherPotion
+)
+
 --==================================================
--- TOGGLE CONNECTIONS
+-- MAIN TOGGLES
 --==================================================
 
 rollToggle.MouseButton1Click:Connect(function()
-    settings.AutoRoll = not settings.AutoRoll
+
+    settings.AutoRoll =
+        not settings.AutoRoll
 
     updateButton(
         rollToggle,
@@ -269,7 +372,9 @@ rollToggle.MouseButton1Click:Connect(function()
 end)
 
 towerToggle.MouseButton1Click:Connect(function()
-    settings.AutoTower = not settings.AutoTower
+
+    settings.AutoTower =
+        not settings.AutoTower
 
     updateButton(
         towerToggle,
@@ -281,7 +386,9 @@ towerToggle.MouseButton1Click:Connect(function()
 end)
 
 pauseToggle.MouseButton1Click:Connect(function()
-    settings.TowerPause = not settings.TowerPause
+
+    settings.TowerPause =
+        not settings.TowerPause
 
     updateButton(
         pauseToggle,
@@ -293,7 +400,9 @@ pauseToggle.MouseButton1Click:Connect(function()
 end)
 
 endToggle.MouseButton1Click:Connect(function()
-    settings.TowerEnd = not settings.TowerEnd
+
+    settings.TowerEnd =
+        not settings.TowerEnd
 
     updateButton(
         endToggle,
@@ -305,7 +414,9 @@ endToggle.MouseButton1Click:Connect(function()
 end)
 
 prestigeToggle.MouseButton1Click:Connect(function()
-    settings.PrestigeTower = not settings.PrestigeTower
+
+    settings.PrestigeTower =
+        not settings.PrestigeTower
 
     updateButton(
         prestigeToggle,
@@ -317,7 +428,9 @@ prestigeToggle.MouseButton1Click:Connect(function()
 end)
 
 hideBattleToggle.MouseButton1Click:Connect(function()
-    settings.AutoHideBattle = not settings.AutoHideBattle
+
+    settings.AutoHideBattle =
+        not settings.AutoHideBattle
 
     updateButton(
         hideBattleToggle,
@@ -328,19 +441,39 @@ hideBattleToggle.MouseButton1Click:Connect(function()
     saveSettings()
 end)
 
+weatherToggle.MouseButton1Click:Connect(function()
+
+    settings.WeatherPotion =
+        not settings.WeatherPotion
+
+    updateButton(
+        weatherToggle,
+        "Weather Potion",
+        settings.WeatherPotion
+    )
+
+    saveSettings()
+end)
+
 --==================================================
 -- AUTO ROLL
+-- 0.01 SECONDS
 --==================================================
 
 task.spawn(function()
+
     while gui.Parent do
+
         if settings.AutoRoll then
+
             pcall(function()
                 RollRequest:FireServer()
             end)
 
             task.wait(0.01)
+
         else
+
             task.wait(0.1)
         end
     end
@@ -348,18 +481,23 @@ end)
 
 --==================================================
 -- AUTO TOWER
--- 0.02 SECOND INTERVAL
+-- 0.02 SECONDS
 --==================================================
 
 task.spawn(function()
+
     while gui.Parent do
+
         if settings.AutoTower then
+
             pcall(function()
                 RunInfTower:FireServer()
             end)
 
             task.wait(0.02)
+
         else
+
             task.wait(0.1)
         end
     end
@@ -370,14 +508,19 @@ end)
 --==================================================
 
 task.spawn(function()
+
     while gui.Parent do
+
         if settings.TowerPause then
+
             pcall(function()
                 FloorPromptEvent:FireServer("pause")
             end)
 
             task.wait(0.1)
+
         else
+
             task.wait(0.1)
         end
     end
@@ -388,14 +531,19 @@ end)
 --==================================================
 
 task.spawn(function()
+
     while gui.Parent do
+
         if settings.TowerEnd then
+
             pcall(function()
                 InfinityTowerAction:FireServer("end")
             end)
 
             task.wait(0.1)
+
         else
+
             task.wait(0.1)
         end
     end
@@ -406,31 +554,257 @@ end)
 --==================================================
 
 task.spawn(function()
+
     while gui.Parent do
+
         if settings.PrestigeTower then
+
             pcall(function()
                 RunPrestigeTower:FireServer()
             end)
 
             task.wait(0.1)
+
         else
+
             task.wait(0.1)
         end
     end
 end)
 
 --==================================================
+-- WEATHER POTION
+-- 0.5 SECONDS
+--==================================================
+
+task.spawn(function()
+
+    while gui.Parent do
+
+        if settings.WeatherPotion then
+
+            pcall(function()
+
+                UseItem:FireServer(
+                    "Weather Reroll",
+                    1
+                )
+
+            end)
+
+            task.wait(0.5)
+
+        else
+
+            task.wait(0.1)
+        end
+    end
+end)
+
+--==================================================
+-- CRAFTING DROPDOWN
+--==================================================
+
+local craftingOpen = false
+local craftingButtons = {}
+
+local potionNames = {
+    "Luck Potion I",
+    "Luck Potion II",
+    "Luck Potion III",
+
+    "Battle Potion I",
+    "Battle Potion II",
+    "Battle Potion III",
+
+    "Speed Potion I",
+    "Speed Potion II",
+    "Speed Potion III"
+}
+
+local craftingHeader = Instance.new("TextButton")
+
+craftingHeader.Size =
+    UDim2.new(1, -20, 0, 35)
+
+craftingHeader.Position =
+    UDim2.new(0, 10, 0, 355)
+
+craftingHeader.BackgroundColor3 =
+    Color3.fromRGB(45, 45, 45)
+
+craftingHeader.BorderSizePixel = 0
+
+craftingHeader.TextColor3 =
+    Color3.fromRGB(255, 255, 255)
+
+craftingHeader.TextSize = 15
+
+craftingHeader.Font =
+    Enum.Font.SourceSansBold
+
+craftingHeader.Text =
+    "Crafting ▼"
+
+craftingHeader.Parent = frame
+
+local craftingCorner = Instance.new("UICorner")
+
+craftingCorner.CornerRadius =
+    UDim.new(0, 6)
+
+craftingCorner.Parent =
+    craftingHeader
+
+--==================================================
+-- CRAFT BUTTONS
+--==================================================
+
+for index, potionName
+    in ipairs(potionNames) do
+
+    local button =
+        Instance.new("TextButton")
+
+    button.Size =
+        UDim2.new(1, -20, 0, 32)
+
+    button.Position =
+        UDim2.new(
+            0,
+            10,
+            0,
+            395 + ((index - 1) * 37)
+        )
+
+    button.BackgroundColor3 =
+        Color3.fromRGB(45, 45, 45)
+
+    button.BorderSizePixel = 0
+
+    button.TextColor3 =
+        Color3.fromRGB(255, 255, 255)
+
+    button.TextSize = 14
+
+    button.Font =
+        Enum.Font.SourceSans
+
+    updateButton(
+        button,
+        potionName,
+        settings.Crafting[potionName]
+    )
+
+    button.Visible = false
+    button.Parent = frame
+
+    local corner =
+        Instance.new("UICorner")
+
+    corner.CornerRadius =
+        UDim.new(0, 6)
+
+    corner.Parent = button
+
+    craftingButtons[potionName] =
+        button
+
+    button.MouseButton1Click:Connect(function()
+
+        settings.Crafting[potionName] =
+            not settings.Crafting[potionName]
+
+        updateButton(
+            button,
+            potionName,
+            settings.Crafting[potionName]
+        )
+
+        saveSettings()
+    end)
+end
+
+--==================================================
+-- CRAFTING DROPDOWN
+--==================================================
+
+craftingHeader.MouseButton1Click:Connect(function()
+
+    craftingOpen =
+        not craftingOpen
+
+    if craftingOpen then
+
+        craftingHeader.Text =
+            "Crafting ▲"
+
+        for _, button
+            in pairs(craftingButtons) do
+
+            button.Visible = true
+        end
+
+        frame.Size =
+            UDim2.new(0, 220, 0, 735)
+
+    else
+
+        craftingHeader.Text =
+            "Crafting ▼"
+
+        for _, button
+            in pairs(craftingButtons) do
+
+            button.Visible = false
+        end
+
+        frame.Size =
+            UDim2.new(0, 220, 0, 380)
+    end
+end)
+
+--==================================================
+-- CRAFTING
+-- 0.1 SECONDS
+--==================================================
+
+task.spawn(function()
+
+    while gui.Parent do
+
+        for potionName, enabled
+            in pairs(settings.Crafting) do
+
+            if enabled then
+
+                pcall(function()
+
+                    CraftItem:FireServer(
+                        "craft",
+                        potionName
+                    )
+
+                end)
+            end
+        end
+
+        task.wait(0.1)
+    end
+end)
+
+--==================================================
 -- AUTO HIDE BATTLE
--- Hides card-fight UI elements while keeping
--- the floor counter and normal GUI visible.
 --==================================================
 
 local hiddenBattleObjects = {}
 
 local function isFloorCounterObject(object)
+
     local current = object
 
     while current do
+
         if current.Name == "floorCount" then
             return true
         end
@@ -442,32 +816,40 @@ local function isFloorCounterObject(object)
 end
 
 local function hideBattleObject(object)
+
     if not object:IsA("GuiObject") then
         return
     end
 
-    -- Keep floor counter visible
     if isFloorCounterObject(object) then
         return
     end
 
-    -- Never hide our own GUI
     if object:IsDescendantOf(gui) then
         return
     end
 
     if hiddenBattleObjects[object] == nil then
-        hiddenBattleObjects[object] = object.Visible
+
+        hiddenBattleObjects[object] =
+            object.Visible
     end
 
     object.Visible = false
 end
 
 local function restoreBattleObjects()
-    for object, originalVisible in pairs(hiddenBattleObjects) do
+
+    for object, originalVisible
+        in pairs(hiddenBattleObjects) do
+
         if object and object.Parent then
+
             pcall(function()
-                object.Visible = originalVisible
+
+                object.Visible =
+                    originalVisible
+
             end)
         end
     end
@@ -476,28 +858,38 @@ local function restoreBattleObjects()
 end
 
 local function hideCardBattle()
-    local playerGui = player:FindFirstChild("PlayerGui")
+
+    local playerGui =
+        player:FindFirstChild("PlayerGui")
 
     if not playerGui then
         return
     end
 
-    local battleUI = playerGui:FindFirstChild("BattleUI")
+    local battleUI =
+        playerGui:FindFirstChild("BattleUI")
 
     if not battleUI then
         return
     end
 
-    for _, object in ipairs(battleUI:GetDescendants()) do
+    for _, object
+        in ipairs(battleUI:GetDescendants()) do
+
         hideBattleObject(object)
     end
 end
 
 task.spawn(function()
+
     while gui.Parent do
+
         if settings.AutoHideBattle then
+
             hideCardBattle()
+
         else
+
             restoreBattleObjects()
         end
 
@@ -506,16 +898,23 @@ task.spawn(function()
 end)
 
 --==================================================
--- B KEY = SHOW / HIDE GUI
+-- B = SHOW / HIDE GUI
 --==================================================
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
+UserInputService.InputBegan:Connect(function(
+    input,
+    gameProcessed
+)
+
     if gameProcessed then
         return
     end
 
-    if input.KeyCode == Enum.KeyCode.B then
-        frame.Visible = not frame.Visible
+    if input.KeyCode ==
+        Enum.KeyCode.B then
+
+        frame.Visible =
+            not frame.Visible
     end
 end)
 
@@ -523,25 +922,33 @@ end)
 -- AUTO REJOIN
 --==================================================
 
-local REJOIN_TIME = 8 * 60
+local REJOIN_TIME =
+    12 * 60
 
 local SCRIPT_URL =
     "https://raw.githubusercontent.com/kumakumakai/AutoRollTower/refs/heads/main/AutoRollTower.lua"
 
 local function queueTeleportScript()
+
     local queueFunction =
         queue_on_teleport
         or queueonteleport
 
     if not queueFunction then
-        warn("queue_on_teleport is not available.")
+
+        warn(
+            "queue_on_teleport is not available."
+        )
+
         return
     end
 
     local queuedCode = [[
-        task.wait(5)
+        task.wait(10)
 
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/kumakumakai/AutoRollTower/refs/heads/main/AutoRollTower.lua"))()
+        loadstring(game:HttpGet(
+            "https://raw.githubusercontent.com/kumakumakai/AutoRollTower/refs/heads/main/AutoRollTower.lua"
+        ))()
     ]]
 
     pcall(function()
@@ -550,6 +957,7 @@ local function queueTeleportScript()
 end
 
 task.spawn(function()
+
     queueTeleportScript()
 
     task.wait(REJOIN_TIME)
@@ -557,18 +965,21 @@ task.spawn(function()
     saveSettings()
 
     pcall(function()
+
         TeleportService:Teleport(
             game.PlaceId,
             player
         )
+
     end)
 end)
 
 --==================================================
--- DONE
+-- LOADED
 --==================================================
 
 print("Auto Roll / Tower GUI loaded.")
-print("Auto Tower interval: 0.02 seconds")
+print("Auto Tower: 0.02 seconds")
+print("Weather Potion: 0.5 seconds")
+print("Crafting: 0.1 seconds")
 print("Press B to hide/show the GUI.")
-print("Auto Hide Battle only hides the card-fight UI.")
