@@ -976,6 +976,7 @@ local REJOIN_TIME =
     10 * 60
 
 local teleporting = false
+local teleportMode = "same"
 
 local function queueTeleportScript()
 
@@ -1014,36 +1015,69 @@ local function queueTeleportScript()
     return true
 end
 
-local function doRejoin()
+local function doRejoin(mode)
 
     if teleporting then
         return
     end
 
     teleporting = true
+    teleportMode = mode or "same"
 
     queueTeleportScript()
 
     task.wait(1)
 
+    local targetJobId = game.JobId
+
     local success, err = pcall(function()
-        TeleportService:Teleport(
-            game.PlaceId,
-            player
-        )
+
+        if teleportMode == "same"
+            and targetJobId
+            and targetJobId ~= "" then
+
+            -- Try to return to the exact server first.
+            TeleportService:TeleportToPlaceInstance(
+                game.PlaceId,
+                targetJobId,
+                player
+            )
+
+        else
+
+            -- If the original server is unavailable/full,
+            -- join any available server.
+            TeleportService:Teleport(
+                game.PlaceId,
+                player
+            )
+        end
     end)
 
     if not success then
 
-        warn("Teleport failed:", tostring(err))
+        warn(
+            "Teleport failed:",
+            tostring(err)
+        )
 
-        teleporting = false
+        if teleportMode == "same" then
 
-        task.delay(10, function()
-            if player and player.Parent then
-                doRejoin()
-            end
-        end)
+            -- Same-server teleport failed, so immediately
+            -- fall back to a different available server.
+            teleporting = false
+            doRejoin("different")
+
+        else
+
+            teleporting = false
+
+            task.delay(10, function()
+                if player and player.Parent then
+                    doRejoin("different")
+                end
+            end)
+        end
     end
 end
 
@@ -1066,13 +1100,28 @@ pcall(function()
                 tostring(errorMessage)
             )
 
-            teleporting = false
+            if teleportMode == "same" then
 
-            task.delay(10, function()
-                if player and player.Parent then
-                    doRejoin()
-                end
-            end)
+                -- The exact server could not be joined
+                -- (for example, it may be full/unavailable).
+                teleporting = false
+                task.delay(1, function()
+                    if player and player.Parent then
+                        doRejoin("different")
+                    end
+                end)
+
+            else
+
+                -- Different-server teleport also failed;
+                -- retry after a short delay.
+                teleporting = false
+                task.delay(10, function()
+                    if player and player.Parent then
+                        doRejoin("different")
+                    end
+                end)
+            end
         end
     )
 
@@ -1089,9 +1138,10 @@ task.spawn(function()
         end
 
         saveSettings()
-        doRejoin()
+
+        -- Always try the exact current server first.
+        doRejoin("same")
 
         break
     end
 end)
-
