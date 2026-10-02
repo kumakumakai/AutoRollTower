@@ -6,10 +6,6 @@ local TeleportService = game:GetService("TeleportService")
 
 local player = Players.LocalPlayer
 
---==================================================
--- SETTINGS
---==================================================
-
 local SETTINGS_FILE = "AutoRollTower_Settings.json"
 
 local settings = {
@@ -38,10 +34,6 @@ local settings = {
     }
 }
 
---==================================================
--- SAVE SETTINGS
---==================================================
-
 local function saveSettings()
     if not writefile then
         return
@@ -54,10 +46,6 @@ local function saveSettings()
         )
     end)
 end
-
---==================================================
--- LOAD SETTINGS
---==================================================
 
 local function loadSettings()
     if not isfile or not readfile then
@@ -103,10 +91,6 @@ end
 
 loadSettings()
 
---==================================================
--- REMOTES
---==================================================
-
 local RollRequest =
     ReplicatedStorage:WaitForChild("RollRequest")
 
@@ -128,20 +112,12 @@ local CraftItem =
 local UseItem =
     ReplicatedStorage:WaitForChild("useItem")
 
---==================================================
--- REMOVE OLD GUI
---==================================================
-
 local oldGui =
     player.PlayerGui:FindFirstChild("AutoRollTowerGUI")
 
 if oldGui then
     oldGui:Destroy()
 end
-
---==================================================
--- GUI
---==================================================
 
 local gui = Instance.new("ScreenGui")
 
@@ -170,10 +146,6 @@ frameCorner.CornerRadius =
 
 frameCorner.Parent = frame
 
---==================================================
--- TITLE
---==================================================
-
 local title = Instance.new("TextLabel")
 
 title.Size =
@@ -191,10 +163,6 @@ title.TextSize = 17
 title.Font = Enum.Font.SourceSansBold
 
 title.Parent = frame
-
---==================================================
--- DRAGGING
---==================================================
 
 local dragging = false
 local dragStart
@@ -237,10 +205,6 @@ UserInputService.InputChanged:Connect(function(input)
         )
     end
 end)
-
---==================================================
--- TOGGLE CREATOR
---==================================================
 
 local function createToggle(text, y)
 
@@ -302,10 +266,6 @@ local function updateButton(
     end
 end
 
---==================================================
--- MAIN TOGGLES
---==================================================
-
 local rollToggle =
     createToggle("Auto Roll", 40)
 
@@ -326,10 +286,6 @@ local hideBattleToggle =
 
 local weatherToggle =
     createToggle("Weather Potion", 310)
-
---==================================================
--- INITIAL BUTTON STATES
---==================================================
 
 updateButton(
     rollToggle,
@@ -372,10 +328,6 @@ updateButton(
     "Weather Potion",
     settings.WeatherPotion
 )
-
---==================================================
--- TOGGLE CONNECTIONS
---==================================================
 
 rollToggle.MouseButton1Click:Connect(function()
 
@@ -475,11 +427,6 @@ weatherToggle.MouseButton1Click:Connect(function()
     saveSettings()
 end)
 
---==================================================
--- AUTO ROLL
--- 0.01 SECONDS
---==================================================
-
 task.spawn(function()
 
     while gui.Parent do
@@ -499,11 +446,6 @@ task.spawn(function()
     end
 end)
 
---==================================================
--- AUTO TOWER
--- 0.02 SECONDS
---==================================================
-
 task.spawn(function()
 
     while gui.Parent do
@@ -514,7 +456,7 @@ task.spawn(function()
                 RunInfTower:FireServer()
             end)
 
-            task.wait(0.005)
+            task.wait(0.001)
 
         else
 
@@ -522,11 +464,6 @@ task.spawn(function()
         end
     end
 end)
-
---==================================================
--- TOWER PAUSE
--- 0.1 SECONDS
---==================================================
 
 task.spawn(function()
 
@@ -547,11 +484,6 @@ task.spawn(function()
     end
 end)
 
---==================================================
--- TOWER END
--- 0.1 SECONDS
---==================================================
-
 task.spawn(function()
 
     while gui.Parent do
@@ -571,11 +503,6 @@ task.spawn(function()
     end
 end)
 
---==================================================
--- PRESTIGE TOWER
--- 0.1 SECONDS
---==================================================
-
 task.spawn(function()
 
     while gui.Parent do
@@ -594,11 +521,6 @@ task.spawn(function()
         end
     end
 end)
-
---==================================================
--- WEATHER POTION
--- 0.5 SECONDS
---==================================================
 
 task.spawn(function()
 
@@ -624,12 +546,7 @@ task.spawn(function()
     end
 end)
 
---==================================================
--- CRAFTING DROPDOWN
---==================================================
-
 local craftingOpen = false
-local craftingButtons = {}
 
 local potionNames = {
 
@@ -682,10 +599,6 @@ craftingCorner.CornerRadius =
 craftingCorner.Parent =
     craftingHeader
 
---==================================================
--- SCROLLING CRAFTING AREA
---==================================================
-
 local craftingScroll =
     Instance.new("ScrollingFrame")
 
@@ -703,18 +616,8 @@ craftingScroll.ScrollBarThickness = 5
 craftingScroll.CanvasSize =
     UDim2.new(0, 0, 0, 10 * 37)
 
-craftingScroll.ScrollingDirection =
-    Enum.ScrollingDirection.Y
-
-craftingScroll.AutomaticCanvasSize =
-    Enum.AutomaticSize.None
-
 craftingScroll.Visible = false
 craftingScroll.Parent = frame
-
---==================================================
--- CRAFTING BUTTONS
---==================================================
 
 for index, potionName
     in ipairs(potionNames) do
@@ -761,9 +664,6 @@ for index, potionName
 
     corner.Parent = button
 
-    craftingButtons[potionName] =
-        button
-
     button.MouseButton1Click:Connect(function()
 
         settings.Crafting[potionName] =
@@ -778,10 +678,6 @@ for index, potionName
         saveSettings()
     end)
 end
-
---==================================================
--- CRAFTING OPEN / CLOSE
---==================================================
 
 craftingHeader.MouseButton1Click:Connect(function()
 
@@ -810,11 +706,6 @@ craftingHeader.MouseButton1Click:Connect(function()
     end
 end)
 
---==================================================
--- CRAFTING
--- 0.1 SECONDS
---==================================================
-
 task.spawn(function()
 
     while gui.Parent do
@@ -838,10 +729,6 @@ task.spawn(function()
         task.wait(0.1)
     end
 end)
-
---==================================================
--- AUTO HIDE BATTLE
---==================================================
 
 local hiddenBattleObjects = {}
 
@@ -943,10 +830,6 @@ task.spawn(function()
     end
 end)
 
---==================================================
--- B = SHOW / HIDE GUI
---==================================================
-
 UserInputService.InputBegan:Connect(function(
     input,
     gameProcessed
@@ -964,13 +847,10 @@ UserInputService.InputBegan:Connect(function(
     end
 end)
 
---==================================================
--- AUTO REJOIN
--- 10 MINUTES
---==================================================
-
 local REJOIN_TIME =
-    10 * 60
+    15 * 60
+
+local teleporting = false
 
 local function queueTeleportScript()
 
@@ -979,53 +859,114 @@ local function queueTeleportScript()
         or queueonteleport
 
     if not queueFunction then
-
-        warn(
-            "queue_on_teleport is not available."
-        )
-
-        return
+        warn("queue_on_teleport is not available.")
+        return false
     end
 
     local queuedCode = [[
-        task.wait(5)
+        task.wait(10)
 
-        loadstring(game:HttpGet(
-            "https://raw.githubusercontent.com/kumakumakai/AutoRollTower/refs/heads/main/AutoRollTower.lua"
-        ))()
+        local success, err = pcall(function()
+            loadstring(game:HttpGet(
+                "https://raw.githubusercontent.com/kumakumakai/AutoRollTower/refs/heads/main/AutoRollTower.lua"
+            ))()
+        end)
+
+        if not success then
+            warn("AutoRollTower loader failed:", err)
+        end
     ]]
 
-    pcall(function()
+    local success, err = pcall(function()
         queueFunction(queuedCode)
     end)
+
+    if not success then
+        warn("Failed to queue teleport script:", err)
+        return false
+    end
+
+    return true
 end
 
-task.spawn(function()
+local function doRejoin()
+
+    if teleporting then
+        return
+    end
+
+    teleporting = true
 
     queueTeleportScript()
 
-    task.wait(REJOIN_TIME)
+    task.wait(1)
 
-    saveSettings()
-
-    pcall(function()
-
+    local success, err = pcall(function()
         TeleportService:Teleport(
             game.PlaceId,
             player
         )
-
     end)
+
+    if not success then
+
+        warn("Teleport failed:", tostring(err))
+
+        teleporting = false
+
+        task.delay(10, function()
+            if player and player.Parent then
+                doRejoin()
+            end
+        end)
+    end
+end
+
+pcall(function()
+
+    TeleportService.TeleportInitFailed:Connect(
+        function(
+            failedPlayer,
+            teleportResult,
+            errorMessage
+        )
+
+            if failedPlayer ~= player then
+                return
+            end
+
+            warn(
+                "TeleportInitFailed:",
+                tostring(teleportResult),
+                tostring(errorMessage)
+            )
+
+            teleporting = false
+
+            task.delay(10, function()
+                if player and player.Parent then
+                    doRejoin()
+                end
+            end)
+        end
+    )
+
 end)
 
---==================================================
--- LOADED
---==================================================
+task.spawn(function()
 
-print("Auto Roll / Tower GUI loaded.")
-print("Auto Tower: 0.02 seconds")
-print("Weather Potion: 0.5 seconds")
-print("Crafting: 0.1 seconds")
-print("Weather Reroll added to Crafting.")
-print("Auto Rejoin: 10 minutes")
-print("Press B to hide/show the GUI.")
+    while gui.Parent do
+
+        task.wait(REJOIN_TIME)
+
+        if not gui.Parent then
+            break
+        end
+
+        saveSettings()
+        doRejoin()
+
+        break
+    end
+end)
+
