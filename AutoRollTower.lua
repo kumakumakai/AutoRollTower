@@ -973,7 +973,7 @@ UserInputService.InputBegan:Connect(function(
 end)
 
 local REJOIN_TIME =
-    8 * 60
+    12 * 60
 
 local teleporting = false
 
