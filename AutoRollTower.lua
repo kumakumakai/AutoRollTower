@@ -989,18 +989,49 @@ local function queueTeleportScript()
         return false
     end
 
+    -- Give the destination time to finish loading, then retry the
+    -- loader several times in case the executor/game is still loading.
     local queuedCode = [[
-        task.wait(10)
+        task.spawn(function()
 
-        local success, err = pcall(function()
-            loadstring(game:HttpGet(
+            local url =
                 "https://raw.githubusercontent.com/kumakumakai/AutoRollTower/refs/heads/main/AutoRollTower.lua"
-            ))()
-        end)
 
-        if not success then
-            warn("AutoRollTower loader failed:", err)
-        end
+            for attempt = 1, 12 do
+
+                if not game:IsLoaded() then
+                    game.Loaded:Wait()
+                end
+
+                task.wait(3)
+
+                local success, err = pcall(function()
+                    local source = game:HttpGet(url)
+                    local loader = loadstring(source)
+
+                    if not loader then
+                        error("loadstring returned nil")
+                    end
+
+                    loader()
+                end)
+
+                if success then
+                    return
+                end
+
+                warn(
+                    "AutoRollTower queued load attempt " ..
+                    tostring(attempt) ..
+                    " failed:",
+                    tostring(err)
+                )
+
+                task.wait(5)
+            end
+
+            warn("AutoRollTower failed to load after 12 attempts.")
+        end)
     ]]
 
     local success, err = pcall(function()
