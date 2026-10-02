@@ -17,6 +17,14 @@ local settings = {
     AutoHideBattle = false,
     WeatherPotion = false,
 
+    BossFarming = {
+        symbolic_man = { Hard = false, Extreme = false, Nightmare = false },
+        crimson_crow = { Hard = false, Extreme = false, Nightmare = false },
+        thriller_king = { Hard = false, Extreme = false, Nightmare = false },
+        drunk_dragon = { Hard = false, Extreme = false, Nightmare = false },
+        curse_tyrant = { Hard = false, Extreme = false, Nightmare = false }
+    },
+
     Crafting = {
         ["Luck Potion I"] = false,
         ["Luck Potion II"] = false,
@@ -75,6 +83,18 @@ local function loadSettings()
             end
         end
 
+        if type(data.BossFarming) == "table" then
+            for bossName in pairs(settings.BossFarming) do
+                if type(data.BossFarming[bossName]) == "table" then
+                    for difficulty in pairs(settings.BossFarming[bossName]) do
+                        if data.BossFarming[bossName][difficulty] ~= nil then
+                            settings.BossFarming[bossName][difficulty] = data.BossFarming[bossName][difficulty]
+                        end
+                    end
+                end
+            end
+        end
+
         if type(data.Crafting) == "table" then
 
             for potionName in pairs(settings.Crafting) do
@@ -112,6 +132,9 @@ local CraftItem =
 local UseItem =
     ReplicatedStorage:WaitForChild("useItem")
 
+local ChallengeBoss =
+    ReplicatedStorage:WaitForChild("challengeBoss")
+
 local oldGui =
     player.PlayerGui:FindFirstChild("AutoRollTowerGUI")
 
@@ -128,7 +151,7 @@ gui.Parent = player.PlayerGui
 local frame = Instance.new("Frame")
 
 frame.Size =
-    UDim2.new(0, 220, 0, 380)
+    UDim2.new(0, 220, 0, 420)
 
 frame.Position =
     UDim2.new(0.5, -110, 0.5, -190)
@@ -267,25 +290,25 @@ local function updateButton(
 end
 
 local rollToggle =
-    createToggle("Auto Roll", 40)
+    createToggle("Auto Roll", 80)
 
 local towerToggle =
-    createToggle("Auto Tower", 85)
+    createToggle("Auto Tower", 125)
 
 local pauseToggle =
-    createToggle("Tower Pause", 130)
+    createToggle("Tower Pause", 170)
 
 local endToggle =
-    createToggle("Tower End", 175)
+    createToggle("Tower End", 215)
 
 local prestigeToggle =
-    createToggle("Prestige Tower", 220)
+    createToggle("Prestige Tower", 260)
 
 local hideBattleToggle =
-    createToggle("Auto Hide Battle", 265)
+    createToggle("Auto Hide Battle", 305)
 
 local weatherToggle =
-    createToggle("Weather Potion", 310)
+    createToggle("Weather Potion", 350)
 
 updateButton(
     rollToggle,
@@ -547,6 +570,138 @@ task.spawn(function()
 end)
 
 local craftingOpen = false
+local craftingHeader
+local craftingScroll
+
+local mainTab = Instance.new("TextButton")
+mainTab.Size = UDim2.new(0, 95, 0, 32)
+mainTab.Position = UDim2.new(0, 10, 0, 40)
+mainTab.BackgroundColor3 = Color3.fromRGB(40, 110, 55)
+mainTab.BorderSizePixel = 0
+mainTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+mainTab.TextSize = 14
+mainTab.Font = Enum.Font.SourceSansBold
+mainTab.Text = "Main"
+mainTab.Parent = frame
+
+local bossTab = Instance.new("TextButton")
+bossTab.Size = UDim2.new(0, 95, 0, 32)
+bossTab.Position = UDim2.new(0, 115, 0, 40)
+bossTab.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+bossTab.BorderSizePixel = 0
+bossTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+bossTab.TextSize = 14
+bossTab.Font = Enum.Font.SourceSansBold
+bossTab.Text = "Boss Farming"
+bossTab.Parent = frame
+
+for _, button in ipairs({mainTab, bossTab}) do
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = button
+end
+
+local mainContent = {
+    rollToggle,
+    towerToggle,
+    pauseToggle,
+    endToggle,
+    prestigeToggle,
+    hideBattleToggle,
+    weatherToggle
+}
+
+local bossScroll = Instance.new("ScrollingFrame")
+bossScroll.Size = UDim2.new(1, -20, 0, 330)
+bossScroll.Position = UDim2.new(0, 10, 0, 80)
+bossScroll.BackgroundTransparency = 1
+bossScroll.BorderSizePixel = 0
+bossScroll.ScrollBarThickness = 5
+bossScroll.CanvasSize = UDim2.new(0, 0, 0, 15 * 42)
+bossScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+bossScroll.Visible = false
+bossScroll.Parent = frame
+
+local bossList = {
+    {"symbolic_man", "symbolic_man"},
+    {"crimson_crow", "crimson_crow"},
+    {"thriller_king", "thriller_king"},
+    {"drunk_dragon", "drunk_dragon"},
+    {"curse_tyrant", "curse_tyrant"}
+}
+
+local difficulties = {"Hard", "Extreme", "Nightmare"}
+local bossButtons = {}
+
+for bossIndex, bossInfo in ipairs(bossList) do
+    local bossName = bossInfo[1]
+    local bossKey = bossInfo[2]
+
+    for difficultyIndex, difficulty in ipairs(difficulties) do
+        local index = (bossIndex - 1) * 3 + difficultyIndex
+        local button = createToggle(
+            bossName .. " - " .. difficulty,
+            0
+        )
+
+        button.Parent = bossScroll
+        button.Size = UDim2.new(1, -5, 0, 35)
+        button.Position = UDim2.new(0, 0, 0, (index - 1) * 42)
+
+        updateButton(
+            button,
+            bossName .. " - " .. difficulty,
+            settings.BossFarming[bossKey][difficulty]
+        )
+
+        bossButtons[bossKey .. difficulty] = button
+
+        button.MouseButton1Click:Connect(function()
+            settings.BossFarming[bossKey][difficulty] =
+                not settings.BossFarming[bossKey][difficulty]
+
+            updateButton(
+                button,
+                bossName .. " - " .. difficulty,
+                settings.BossFarming[bossKey][difficulty]
+            )
+
+            saveSettings()
+        end)
+    end
+end
+
+local function setTab(tab)
+    local bossVisible = tab == "Boss"
+
+    for _, object in ipairs(mainContent) do
+        object.Visible = not bossVisible
+    end
+
+    craftingHeader.Visible = not bossVisible
+    craftingScroll.Visible = not bossVisible and craftingOpen
+    bossScroll.Visible = bossVisible
+
+    mainTab.BackgroundColor3 = bossVisible
+        and Color3.fromRGB(45, 45, 45)
+        or Color3.fromRGB(40, 110, 55)
+
+    bossTab.BackgroundColor3 = bossVisible
+        and Color3.fromRGB(40, 110, 55)
+        or Color3.fromRGB(45, 45, 45)
+
+    frame.Size = bossVisible
+        and UDim2.new(0, 220, 0, 420)
+        or UDim2.new(0, 220, 0, craftingOpen and 775 or 420)
+end
+
+mainTab.MouseButton1Click:Connect(function()
+    setTab("Main")
+end)
+
+bossTab.MouseButton1Click:Connect(function()
+    setTab("Boss")
+end)
 
 local potionNames = {
 
@@ -565,14 +720,14 @@ local potionNames = {
     "Weather Reroll"
 }
 
-local craftingHeader =
+craftingHeader =
     Instance.new("TextButton")
 
 craftingHeader.Size =
     UDim2.new(1, -20, 0, 35)
 
 craftingHeader.Position =
-    UDim2.new(0, 10, 0, 355)
+    UDim2.new(0, 10, 0, 395)
 
 craftingHeader.BackgroundColor3 =
     Color3.fromRGB(45, 45, 45)
@@ -599,14 +754,14 @@ craftingCorner.CornerRadius =
 craftingCorner.Parent =
     craftingHeader
 
-local craftingScroll =
+craftingScroll =
     Instance.new("ScrollingFrame")
 
 craftingScroll.Size =
     UDim2.new(1, -20, 0, 330)
 
 craftingScroll.Position =
-    UDim2.new(0, 10, 0, 395)
+    UDim2.new(0, 10, 0, 435)
 
 craftingScroll.BackgroundTransparency = 1
 craftingScroll.BorderSizePixel = 0
@@ -692,7 +847,7 @@ craftingHeader.MouseButton1Click:Connect(function()
         craftingScroll.Visible = true
 
         frame.Size =
-            UDim2.new(0, 220, 0, 735)
+            UDim2.new(0, 220, 0, 775)
 
     else
 
@@ -703,6 +858,22 @@ craftingHeader.MouseButton1Click:Connect(function()
 
         frame.Size =
             UDim2.new(0, 220, 0, 380)
+    end
+end)
+
+task.spawn(function()
+    while gui.Parent do
+        for bossName, difficultiesForBoss in pairs(settings.BossFarming) do
+            for difficulty, enabled in pairs(difficultiesForBoss) do
+                if enabled then
+                    pcall(function()
+                        ChallengeBoss:FireServer(bossName, difficulty)
+                    end)
+                    task.wait(0.1)
+                end
+            end
+        end
+        task.wait(0.1)
     end
 end)
 
