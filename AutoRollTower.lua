@@ -449,7 +449,7 @@ task.spawn(function()
                 RunInfTower:FireServer()
             end)
 
-            task.wait(0.01)
+            task.wait(0.002)
 
         else
 
