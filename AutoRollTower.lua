@@ -114,18 +114,32 @@ local function loadSettings()
         for key in pairs(settings) do
 
             if key ~= "Crafting"
+                and key ~= "BossFarming"
                 and data[key] ~= nil then
 
                 settings[key] = data[key]
             end
         end
 
+        -- Load boss settings separately so older saved files cannot replace
+        -- the current BossFarming table with the old boss names.
         if type(data.BossFarming) == "table" then
+            local bossAliases = {
+                Colossal_titan = "symbolic_man",
+                dragon_emperor = "drunk_dragon"
+            }
+
             for bossName in pairs(settings.BossFarming) do
-                if type(data.BossFarming[bossName]) == "table" then
+                local savedBoss = data.BossFarming[bossName]
+
+                if type(savedBoss) ~= "table" and bossAliases[bossName] then
+                    savedBoss = data.BossFarming[bossAliases[bossName]]
+                end
+
+                if type(savedBoss) == "table" then
                     for difficulty in pairs(settings.BossFarming[bossName]) do
-                        if data.BossFarming[bossName][difficulty] ~= nil then
-                            settings.BossFarming[bossName][difficulty] = data.BossFarming[bossName][difficulty]
+                        if savedBoss[difficulty] ~= nil then
+                            settings.BossFarming[bossName][difficulty] = savedBoss[difficulty]
                         end
                     end
                 end
@@ -615,11 +629,11 @@ bossScroll.Visible = false
 bossScroll.Parent = frame
 
 local bossList = {
-    {"Colossal titan", "Colossal_titan"},
-    {"crimson_crow", "crimson_crow"},
-    {"thriller_king", "thriller_king"},
-    {"dragon emperor", "dragon_emperor"},
-    {"curse_tyrant", "curse_tyrant"}
+    {"Colossal titan", "Colossal_titan", "colossal_titan"},
+    {"crimson_crow", "crimson_crow", "crimson_crow"},
+    {"thriller_king", "thriller_king", "thriller_king"},
+    {"dragon emperor", "dragon_emperor", "dragon_emperor"},
+    {"curse_tyrant", "curse_tyrant", "curse_tyrant"}
 }
 
 local difficulties = {"Hard", "Extreme", "Nightmare"}
@@ -855,13 +869,19 @@ end)
 
 task.spawn(function()
     while gui.Parent do
-        for bossName, difficultiesForBoss in pairs(settings.BossFarming) do
-            for difficulty, enabled in pairs(difficultiesForBoss) do
-                if enabled then
-                    pcall(function()
-                        ChallengeBoss:FireServer(bossName, difficulty)
-                    end)
-                    task.wait(0.1)
+        for _, bossInfo in ipairs(bossList) do
+            local remoteBossName = bossInfo[3]
+            local bossKey = bossInfo[2]
+            local difficultiesForBoss = settings.BossFarming[bossKey]
+
+            if type(difficultiesForBoss) == "table" then
+                for difficulty, enabled in pairs(difficultiesForBoss) do
+                    if enabled then
+                        pcall(function()
+                            ChallengeBoss:FireServer(remoteBossName, difficulty)
+                        end)
+                        task.wait(0.1)
+                    end
                 end
             end
         end
