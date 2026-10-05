@@ -1,46 +1,17 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
 
 -- Anti-AFK
--- Uses Roblox's Idled event and tries the most compatible input methods first.
 pcall(function()
     player.Idled:Connect(function()
-        local handled = false
-
-        -- Standard Roblox VirtualUser method.
-        pcall(function()
-            local virtualUser = game:GetService("VirtualUser")
-            virtualUser:CaptureController()
-            virtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera and workspace.CurrentCamera.CFrame or CFrame.new())
-            task.wait(0.25)
-            virtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera and workspace.CurrentCamera.CFrame or CFrame.new())
-            handled = true
-        end)
-
-        -- Fallback for executors exposing VirtualInputManager.
-        if not handled then
-            pcall(function()
-                local vim = game:GetService("VirtualInputManager")
-                vim:SendMouseMoveEvent(1, 1, game)
-                task.wait(0.1)
-                vim:SendMouseMoveEvent(2, 2, game)
-                handled = true
-            end)
-        end
-
-        -- Final executor fallback, when available.
-        if not handled and type(mousemoverel) == "function" then
-            pcall(function()
-                mousemoverel(1, 0)
-                task.wait(0.1)
-                mousemoverel(-1, 0)
-                handled = true
-            end)
-        end
+        VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
     end)
 end)
 
@@ -55,10 +26,10 @@ local settings = {
     FiveWeatherPotion = false,
 
     BossFarming = {
-        Colossal_titan = { Hard = false, Extreme = false, Nightmare = false },
+        symbolic_man = { Hard = false, Extreme = false, Nightmare = false },
         crimson_crow = { Hard = false, Extreme = false, Nightmare = false },
         thriller_king = { Hard = false, Extreme = false, Nightmare = false },
-        dragon_emperor = { Hard = false, Extreme = false, Nightmare = false },
+        drunk_dragon = { Hard = false, Extreme = false, Nightmare = false },
         curse_tyrant = { Hard = false, Extreme = false, Nightmare = false }
     },
 
@@ -114,32 +85,18 @@ local function loadSettings()
         for key in pairs(settings) do
 
             if key ~= "Crafting"
-                and key ~= "BossFarming"
                 and data[key] ~= nil then
 
                 settings[key] = data[key]
             end
         end
 
-        -- Load boss settings separately so older saved files cannot replace
-        -- the current BossFarming table with the old boss names.
         if type(data.BossFarming) == "table" then
-            local bossAliases = {
-                Colossal_titan = "symbolic_man",
-                dragon_emperor = "drunk_dragon"
-            }
-
             for bossName in pairs(settings.BossFarming) do
-                local savedBoss = data.BossFarming[bossName]
-
-                if type(savedBoss) ~= "table" and bossAliases[bossName] then
-                    savedBoss = data.BossFarming[bossAliases[bossName]]
-                end
-
-                if type(savedBoss) == "table" then
+                if type(data.BossFarming[bossName]) == "table" then
                     for difficulty in pairs(settings.BossFarming[bossName]) do
-                        if savedBoss[difficulty] ~= nil then
-                            settings.BossFarming[bossName][difficulty] = savedBoss[difficulty]
+                        if data.BossFarming[bossName][difficulty] ~= nil then
+                            settings.BossFarming[bossName][difficulty] = data.BossFarming[bossName][difficulty]
                         end
                     end
                 end
@@ -603,14 +560,6 @@ bossTab.Font = Enum.Font.SourceSansBold
 bossTab.Text = "Boss Farming"
 bossTab.Parent = frame
 
--- Make tab buttons reliably clickable in executor environments.
-mainTab.Active = true
-mainTab.Selectable = true
-mainTab.ZIndex = 20
-bossTab.Active = true
-bossTab.Selectable = true
-bossTab.ZIndex = 20
-
 for _, button in ipairs({mainTab, bossTab}) do
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
@@ -622,8 +571,7 @@ local mainContent = {
     towerToggle,
     prestigeToggle,
     hideBattleToggle,
-    weatherToggle,
-    fiveWeatherToggle
+    weatherToggle
 }
 
 local bossScroll = Instance.new("ScrollingFrame")
@@ -638,11 +586,11 @@ bossScroll.Visible = false
 bossScroll.Parent = frame
 
 local bossList = {
-    {"Colossal titan", "Colossal_titan", "colossal_titan"},
-    {"crimson_crow", "crimson_crow", "crimson_crow"},
-    {"thriller_king", "thriller_king", "thriller_king"},
-    {"dragon emperor", "dragon_emperor", "dragon_emperor"},
-    {"curse_tyrant", "curse_tyrant", "curse_tyrant"}
+    {"symbolic_man", "symbolic_man"},
+    {"crimson_crow", "crimson_crow"},
+    {"thriller_king", "thriller_king"},
+    {"drunk_dragon", "drunk_dragon"},
+    {"curse_tyrant", "curse_tyrant"}
 }
 
 local difficulties = {"Hard", "Extreme", "Nightmare"}
@@ -663,33 +611,22 @@ for bossIndex, bossInfo in ipairs(bossList) do
         button.Size = UDim2.new(1, -5, 0, 35)
         button.Position = UDim2.new(0, 0, 0, (index - 1) * 42)
 
-        local bossSettings = settings.BossFarming[bossKey]
-        if type(bossSettings) ~= "table" then
-            bossSettings = { Hard = false, Extreme = false, Nightmare = false }
-            settings.BossFarming[bossKey] = bossSettings
-        end
-
         updateButton(
             button,
             bossName .. " - " .. difficulty,
-            bossSettings[difficulty] == true
+            settings.BossFarming[bossKey][difficulty]
         )
 
         bossButtons[bossKey .. difficulty] = button
 
         button.MouseButton1Click:Connect(function()
-            local bossSettings = settings.BossFarming[bossKey]
-            if type(bossSettings) ~= "table" then
-                bossSettings = { Hard = false, Extreme = false, Nightmare = false }
-                settings.BossFarming[bossKey] = bossSettings
-            end
-
-            bossSettings[difficulty] = not (bossSettings[difficulty] == true)
+            settings.BossFarming[bossKey][difficulty] =
+                not settings.BossFarming[bossKey][difficulty]
 
             updateButton(
                 button,
                 bossName .. " - " .. difficulty,
-                bossSettings[difficulty]
+                settings.BossFarming[bossKey][difficulty]
             )
 
             saveSettings()
@@ -721,16 +658,13 @@ local function setTab(tab)
         or UDim2.new(0, 240, 0, craftingOpen and 820 or 480)
 end
 
-mainTab.Activated:Connect(function()
+mainTab.MouseButton1Click:Connect(function()
     setTab("Main")
 end)
 
-bossTab.Activated:Connect(function()
+bossTab.MouseButton1Click:Connect(function()
     setTab("Boss")
 end)
-
--- Ensure the GUI starts on the Main tab with the correct visibility.
-setTab("Main")
 
 local potionNames = {
 
@@ -892,19 +826,13 @@ end)
 
 task.spawn(function()
     while gui.Parent do
-        for _, bossInfo in ipairs(bossList) do
-            local remoteBossName = bossInfo[3]
-            local bossKey = bossInfo[2]
-            local difficultiesForBoss = settings.BossFarming[bossKey]
-
-            if type(difficultiesForBoss) == "table" then
-                for difficulty, enabled in pairs(difficultiesForBoss) do
-                    if enabled then
-                        pcall(function()
-                            ChallengeBoss:FireServer(remoteBossName, difficulty)
-                        end)
-                        task.wait(0.1)
-                    end
+        for bossName, difficultiesForBoss in pairs(settings.BossFarming) do
+            for difficulty, enabled in pairs(difficultiesForBoss) do
+                if enabled then
+                    pcall(function()
+                        ChallengeBoss:FireServer(bossName, difficulty)
+                    end)
+                    task.wait(0.1)
                 end
             end
         end
