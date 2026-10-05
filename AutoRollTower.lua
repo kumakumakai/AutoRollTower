@@ -1,21 +1,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local VirtualUser = game:GetService("VirtualUser")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
-
 local player = Players.LocalPlayer
 
--- Anti-AFK
-pcall(function()
-    player.Idled:Connect(function()
-        VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-        task.wait(1)
-        VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-    end)
-end)
-
-local SETTINGS_FILE = "AutoRollTower_Settings.json"
+local SETTINGS_FILE = "AutoRollTower_Settings_" .. tostring(player.UserId) .. ".json"
 
 local settings = {
     AutoRoll = false,
@@ -26,10 +15,10 @@ local settings = {
     FiveWeatherPotion = false,
 
     BossFarming = {
-        symbolic_man = { Hard = false, Extreme = false, Nightmare = false },
+        colossal_titan = { Hard = false, Extreme = false, Nightmare = false },
         crimson_crow = { Hard = false, Extreme = false, Nightmare = false },
         thriller_king = { Hard = false, Extreme = false, Nightmare = false },
-        drunk_dragon = { Hard = false, Extreme = false, Nightmare = false },
+        dragon_emperor = { Hard = false, Extreme = false, Nightmare = false },
         curse_tyrant = { Hard = false, Extreme = false, Nightmare = false }
     },
 
@@ -586,10 +575,10 @@ bossScroll.Visible = false
 bossScroll.Parent = frame
 
 local bossList = {
-    {"symbolic_man", "symbolic_man"},
+    {"colossal_titan", "colossal_titan"},
     {"crimson_crow", "crimson_crow"},
     {"thriller_king", "thriller_king"},
-    {"drunk_dragon", "drunk_dragon"},
+    {"dragon_emperor", "dragon_emperor"},
     {"curse_tyrant", "curse_tyrant"}
 }
 
@@ -979,4 +968,15 @@ UserInputService.InputBegan:Connect(function(
         frame.Visible =
             not frame.Visible
     end
+end)
+
+-- Anti-AFK
+pcall(function()
+    player.Idled:Connect(function()
+        pcall(function()
+            local VirtualUser = game:GetService("VirtualUser")
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new(0, 0))
+        end)
+    end)
 end)
