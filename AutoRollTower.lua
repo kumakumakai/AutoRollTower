@@ -26,10 +26,10 @@ local settings = {
     FiveWeatherPotion = false,
 
     BossFarming = {
-        symbolic_man = { Hard = false, Extreme = false, Nightmare = false },
+        colossal titan = { Hard = false, Extreme = false, Nightmare = false },
         crimson_crow = { Hard = false, Extreme = false, Nightmare = false },
         thriller_king = { Hard = false, Extreme = false, Nightmare = false },
-        drunk_dragon = { Hard = false, Extreme = false, Nightmare = false },
+        dragon emperor = { Hard = false, Extreme = false, Nightmare = false },
         curse_tyrant = { Hard = false, Extreme = false, Nightmare = false }
     },
 
@@ -586,10 +586,10 @@ bossScroll.Visible = false
 bossScroll.Parent = frame
 
 local bossList = {
-    {"symbolic_man", "symbolic_man"},
+    {"Colossal titan", "Colossal titan"},
     {"crimson_crow", "crimson_crow"},
     {"thriller_king", "thriller_king"},
-    {"drunk_dragon", "drunk_dragon"},
+    {"dragon emperor", "dragon emperor"},
     {"curse_tyrant", "curse_tyrant"}
 }
 
