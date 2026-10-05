@@ -1,12 +1,21 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
 
 local player = Players.LocalPlayer
 
-local SETTINGS_FILE = "AutoRollTower_Settings_" .. tostring(player.UserId) .. ".json"
+-- Anti-AFK
+pcall(function()
+    player.Idled:Connect(function()
+        VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+        task.wait(1)
+        VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    end)
+end)
+
+local SETTINGS_FILE = "AutoRollTower_Settings.json"
 
 local settings = {
     AutoRoll = false,
@@ -449,7 +458,7 @@ task.spawn(function()
                 RunInfTower:FireServer()
             end)
 
-            task.wait(0.002)
+            task.wait(0.001)
 
         else
 
@@ -969,210 +978,5 @@ UserInputService.InputBegan:Connect(function(
 
         frame.Visible =
             not frame.Visible
-    end
-end)
-
-local REJOIN_TIME =
-    60 * 60
-
-local teleporting = false
-local teleportMode = "same"
-
-local function queueTeleportScript()
-
-    local queueFunction =
-        queue_on_teleport
-        or queueonteleport
-
-    if not queueFunction then
-        warn("queue_on_teleport is not available.")
-        return false
-    end
-
-    -- Give the destination time to finish loading, then retry the
-    -- loader several times in case the executor/game is still loading.
-    local queuedCode = [[
-        task.spawn(function()
-
-            local url =
-                "https://raw.githubusercontent.com/kumakumakai/AutoRollTower/refs/heads/main/AutoRollTower.lua"
-
-            for attempt = 1, 12 do
-
-                if not game:IsLoaded() then
-                    game.Loaded:Wait()
-                end
-
-                task.wait(3)
-
-                local success, err = pcall(function()
-                    local source = game:HttpGet(url)
-                    local loader = loadstring(source)
-
-                    if not loader then
-                        error("loadstring returned nil")
-                    end
-
-                    loader()
-                end)
-
-                if success then
-                    return
-                end
-
-                warn(
-                    "AutoRollTower queued load attempt " ..
-                    tostring(attempt) ..
-                    " failed:",
-                    tostring(err)
-                )
-
-                task.wait(5)
-            end
-
-            warn("AutoRollTower failed to load after 12 attempts.")
-        end)
-    ]]
-
-    local success, err = pcall(function()
-        queueFunction(queuedCode)
-    end)
-
-    if not success then
-        warn("Failed to queue teleport script:", err)
-        return false
-    end
-
-    return true
-end
-
-local function doRejoin(mode)
-
-    if teleporting then
-        return
-    end
-
-    teleporting = true
-    teleportMode = mode or "same"
-
-    queueTeleportScript()
-
-    task.wait(1)
-
-    local targetJobId = game.JobId
-
-    local success, err = pcall(function()
-
-        if teleportMode == "same"
-            and targetJobId
-            and targetJobId ~= "" then
-
-            -- Try to return to the exact server first.
-            TeleportService:TeleportToPlaceInstance(
-                game.PlaceId,
-                targetJobId,
-                player
-            )
-
-        else
-
-            -- If the original server is unavailable/full,
-            -- join any available server.
-            TeleportService:Teleport(
-                game.PlaceId,
-                player
-            )
-        end
-    end)
-
-    if not success then
-
-        warn(
-            "Teleport failed:",
-            tostring(err)
-        )
-
-        if teleportMode == "same" then
-
-            -- Same-server teleport failed, so immediately
-            -- fall back to a different available server.
-            teleporting = false
-            doRejoin("different")
-
-        else
-
-            teleporting = false
-
-            task.delay(10, function()
-                if player and player.Parent then
-                    doRejoin("different")
-                end
-            end)
-        end
-    end
-end
-
-pcall(function()
-
-    TeleportService.TeleportInitFailed:Connect(
-        function(
-            failedPlayer,
-            teleportResult,
-            errorMessage
-        )
-
-            if failedPlayer ~= player then
-                return
-            end
-
-            warn(
-                "TeleportInitFailed:",
-                tostring(teleportResult),
-                tostring(errorMessage)
-            )
-
-            if teleportMode == "same" then
-
-                -- The exact server could not be joined
-                -- (for example, it may be full/unavailable).
-                teleporting = false
-                task.delay(1, function()
-                    if player and player.Parent then
-                        doRejoin("different")
-                    end
-                end)
-
-            else
-
-                -- Different-server teleport also failed;
-                -- retry after a short delay.
-                teleporting = false
-                task.delay(10, function()
-                    if player and player.Parent then
-                        doRejoin("different")
-                    end
-                end)
-            end
-        end
-    )
-
-end)
-
-task.spawn(function()
-
-    while gui.Parent do
-
-        task.wait(REJOIN_TIME)
-
-        if not gui.Parent then
-            break
-        end
-
-        saveSettings()
-
-        -- Always try the exact current server first.
-        doRejoin("same")
-
-        break
     end
 end)
