@@ -603,6 +603,14 @@ bossTab.Font = Enum.Font.SourceSansBold
 bossTab.Text = "Boss Farming"
 bossTab.Parent = frame
 
+-- Make tab buttons reliably clickable in executor environments.
+mainTab.Active = true
+mainTab.Selectable = true
+mainTab.ZIndex = 20
+bossTab.Active = true
+bossTab.Selectable = true
+bossTab.ZIndex = 20
+
 for _, button in ipairs({mainTab, bossTab}) do
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
@@ -713,13 +721,16 @@ local function setTab(tab)
         or UDim2.new(0, 240, 0, craftingOpen and 820 or 480)
 end
 
-mainTab.MouseButton1Click:Connect(function()
+mainTab.Activated:Connect(function()
     setTab("Main")
 end)
 
-bossTab.MouseButton1Click:Connect(function()
+bossTab.Activated:Connect(function()
     setTab("Boss")
 end)
+
+-- Ensure the GUI starts on the Main tab with the correct visibility.
+setTab("Main")
 
 local potionNames = {
 
