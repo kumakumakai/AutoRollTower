@@ -5,6 +5,45 @@ local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
 
+-- Anti-AFK
+-- Uses Roblox's Idled event and tries the most compatible input methods first.
+pcall(function()
+    player.Idled:Connect(function()
+        local handled = false
+
+        -- Standard Roblox VirtualUser method.
+        pcall(function()
+            local virtualUser = game:GetService("VirtualUser")
+            virtualUser:CaptureController()
+            virtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera and workspace.CurrentCamera.CFrame or CFrame.new())
+            task.wait(0.25)
+            virtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera and workspace.CurrentCamera.CFrame or CFrame.new())
+            handled = true
+        end)
+
+        -- Fallback for executors exposing VirtualInputManager.
+        if not handled then
+            pcall(function()
+                local vim = game:GetService("VirtualInputManager")
+                vim:SendMouseMoveEvent(1, 1, game)
+                task.wait(0.1)
+                vim:SendMouseMoveEvent(2, 2, game)
+                handled = true
+            end)
+        end
+
+        -- Final executor fallback, when available.
+        if not handled and type(mousemoverel) == "function" then
+            pcall(function()
+                mousemoverel(1, 0)
+                task.wait(0.1)
+                mousemoverel(-1, 0)
+                handled = true
+            end)
+        end
+    end)
+end)
+
 local SETTINGS_FILE = "AutoRollTower_Settings.json"
 
 local settings = {
@@ -16,10 +55,10 @@ local settings = {
     FiveWeatherPotion = false,
 
     BossFarming = {
-        symbolic_man = { Hard = false, Extreme = false, Nightmare = false },
+        Colossal_titan = { Hard = false, Extreme = false, Nightmare = false },
         crimson_crow = { Hard = false, Extreme = false, Nightmare = false },
         thriller_king = { Hard = false, Extreme = false, Nightmare = false },
-        drunk_dragon = { Hard = false, Extreme = false, Nightmare = false },
+        dragon_emperor = { Hard = false, Extreme = false, Nightmare = false },
         curse_tyrant = { Hard = false, Extreme = false, Nightmare = false }
     },
 
@@ -576,10 +615,10 @@ bossScroll.Visible = false
 bossScroll.Parent = frame
 
 local bossList = {
-    {"symbolic_man", "symbolic_man"},
+    {"Colossal titan", "Colossal_titan"},
     {"crimson_crow", "crimson_crow"},
     {"thriller_king", "thriller_king"},
-    {"drunk_dragon", "drunk_dragon"},
+    {"dragon emperor", "dragon_emperor"},
     {"curse_tyrant", "curse_tyrant"}
 }
 
