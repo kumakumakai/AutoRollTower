@@ -614,7 +614,8 @@ local mainContent = {
     towerToggle,
     prestigeToggle,
     hideBattleToggle,
-    weatherToggle
+    weatherToggle,
+    fiveWeatherToggle
 }
 
 local bossScroll = Instance.new("ScrollingFrame")
@@ -654,22 +655,33 @@ for bossIndex, bossInfo in ipairs(bossList) do
         button.Size = UDim2.new(1, -5, 0, 35)
         button.Position = UDim2.new(0, 0, 0, (index - 1) * 42)
 
+        local bossSettings = settings.BossFarming[bossKey]
+        if type(bossSettings) ~= "table" then
+            bossSettings = { Hard = false, Extreme = false, Nightmare = false }
+            settings.BossFarming[bossKey] = bossSettings
+        end
+
         updateButton(
             button,
             bossName .. " - " .. difficulty,
-            settings.BossFarming[bossKey][difficulty]
+            bossSettings[difficulty] == true
         )
 
         bossButtons[bossKey .. difficulty] = button
 
         button.MouseButton1Click:Connect(function()
-            settings.BossFarming[bossKey][difficulty] =
-                not settings.BossFarming[bossKey][difficulty]
+            local bossSettings = settings.BossFarming[bossKey]
+            if type(bossSettings) ~= "table" then
+                bossSettings = { Hard = false, Extreme = false, Nightmare = false }
+                settings.BossFarming[bossKey] = bossSettings
+            end
+
+            bossSettings[difficulty] = not (bossSettings[difficulty] == true)
 
             updateButton(
                 button,
                 bossName .. " - " .. difficulty,
-                settings.BossFarming[bossKey][difficulty]
+                bossSettings[difficulty]
             )
 
             saveSettings()
