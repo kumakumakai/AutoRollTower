@@ -1,1010 +1,621 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
+local VirtualUser = game:GetService("VirtualUser")
+
 local player = Players.LocalPlayer
 
-local SETTINGS_FILE = "AutoRollTower_Settings_" .. tostring(player.UserId) .. ".json"
+--==================================================
+-- ANTI AFK
+--==================================================
 
-local settings = {
-    AutoRoll = false,
-    AutoTower = false,
-    PrestigeTower = false,
-    AutoHideBattle = false,
-    WeatherPotion = false,
-    FiveWeatherPotion = false,
-
-    BossFarming = {
-        thriller_king = "Off",
-        dragon_emperor = "Off",
-        curse_tyrant = "Off"
-    },
-
-    Crafting = {
-        ["Luck Potion I"] = false,
-        ["Luck Potion II"] = false,
-        ["Luck Potion III"] = false,
-
-        ["Battle Potion I"] = false,
-        ["Battle Potion II"] = false,
-        ["Battle Potion III"] = false,
-
-        ["Speed Potion I"] = false,
-        ["Speed Potion II"] = false,
-        ["Speed Potion III"] = false,
-
-        ["Weather Reroll"] = false
-    }
-}
-
-local function saveSettings()
-    if not writefile then
-        return
-    end
-
+Players.LocalPlayer.Idled:Connect(function()
     pcall(function()
-        writefile(
-            SETTINGS_FILE,
-            HttpService:JSONEncode(settings)
-        )
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
     end)
-end
+end)
 
-local function loadSettings()
-    if not isfile or not readfile then
-        return
+--==================================================
+-- SETTINGS FILE
+--==================================================
+
+local SettingsFile = "AutoBossGUI_Settings.json"
+
+local Settings = {
+    BossEnabled = false,
+    RollEnabled = false,
+    TowerEnabled = false,
+    WeatherEnabled = false,
+
+    SelectedBoss = "thriller_king",
+    SelectedDifficulty = "Hard",
+
+    PositionXScale = 0.5,
+    PositionXOffset = -140,
+    PositionYScale = 0.5,
+    PositionYOffset = -177
+}
+
+--==================================================
+-- LOAD SETTINGS
+--==================================================
+
+pcall(function()
+    if isfile and isfile(SettingsFile) then
+        local Saved = HttpService:JSONDecode(readfile(SettingsFile))
+
+        for key, value in pairs(Saved) do
+            if Settings[key] ~= nil then
+                Settings[key] = value
+            end
+        end
     end
+end)
 
-    if not isfile(SETTINGS_FILE) then
-        return
-    end
-
+local function SaveSettings()
     pcall(function()
-
-        local data = HttpService:JSONDecode(
-            readfile(SETTINGS_FILE)
-        )
-
-        if type(data) ~= "table" then
-            return
-        end
-
-        for key in pairs(settings) do
-
-            if key ~= "Crafting"
-                and data[key] ~= nil then
-
-                settings[key] = data[key]
-            end
-        end
-
-        if type(data.BossFarming) == "table" then
-            for bossName in pairs(settings.BossFarming) do
-                if type(data.BossFarming[bossName]) == "string" then
-                    settings.BossFarming[bossName] = data.BossFarming[bossName]
-                end
-            end
-        end
-
-        if type(data.Crafting) == "table" then
-
-            for potionName in pairs(settings.Crafting) do
-
-                if data.Crafting[potionName] ~= nil then
-
-                    settings.Crafting[potionName] =
-                        data.Crafting[potionName]
-                end
-            end
-        end
-    end)
-end
-
-loadSettings()
-
-local RollRequest =
-    ReplicatedStorage:WaitForChild("RollRequest")
-
-local RunInfTower =
-    ReplicatedStorage:WaitForChild("runInfTower")
-
-local RunPrestigeTower =
-    ReplicatedStorage:WaitForChild("runPrestigeTower")
-
-local CraftItem =
-    ReplicatedStorage:WaitForChild("craftItem")
-
-local UseItem =
-    ReplicatedStorage:WaitForChild("useItem")
-
-local ChallengeBoss =
-    ReplicatedStorage:WaitForChild("challengeBoss")
-
-local oldGui =
-    player.PlayerGui:FindFirstChild("AutoRollTowerGUI")
-
-if oldGui then
-    oldGui:Destroy()
-end
-
-local gui = Instance.new("ScreenGui")
-
-gui.Name = "AutoRollTowerGUI"
-gui.ResetOnSpawn = false
-gui.Parent = player.PlayerGui
-
-local frame = Instance.new("Frame")
-
-frame.Size =
-    UDim2.new(0, 240, 0, 480)
-
-frame.Position =
-    UDim2.new(0.5, -120, 0.5, -230)
-
-frame.BackgroundColor3 =
-    Color3.fromRGB(25, 25, 25)
-
-frame.BorderSizePixel = 0
-frame.Parent = gui
-
-local frameCorner = Instance.new("UICorner")
-
-frameCorner.CornerRadius =
-    UDim.new(0, 8)
-
-frameCorner.Parent = frame
-
-local title = Instance.new("TextLabel")
-
-title.Size =
-    UDim2.new(1, 0, 0, 35)
-
-title.BackgroundTransparency = 1
-
-title.Text =
-    "Auto Roll / Tower"
-
-title.TextColor3 =
-    Color3.fromRGB(255, 255, 255)
-
-title.TextSize = 17
-title.Font = Enum.Font.SourceSansBold
-
-title.Parent = frame
-
-local dragging = false
-local dragStart
-local startPos
-
-title.InputBegan:Connect(function(input)
-
-    if input.UserInputType ==
-        Enum.UserInputType.MouseButton1 then
-
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
-    end
-end)
-
-title.InputEnded:Connect(function(input)
-
-    if input.UserInputType ==
-        Enum.UserInputType.MouseButton1 then
-
-        dragging = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-
-    if dragging
-        and input.UserInputType ==
-        Enum.UserInputType.MouseMovement then
-
-        local delta =
-            input.Position - dragStart
-
-        frame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
-local function createToggle(text, y)
-
-    local button =
-        Instance.new("TextButton")
-
-    button.Size =
-        UDim2.new(1, -20, 0, 35)
-
-    button.Position =
-        UDim2.new(0, 10, 0, y)
-
-    button.BackgroundColor3 =
-        Color3.fromRGB(45, 45, 45)
-
-    button.BorderSizePixel = 0
-
-    button.TextColor3 =
-        Color3.fromRGB(255, 255, 255)
-
-    button.TextSize = 15
-    button.Font = Enum.Font.SourceSans
-
-    button.Text = text
-    button.Parent = frame
-
-    local corner =
-        Instance.new("UICorner")
-
-    corner.CornerRadius =
-        UDim.new(0, 6)
-
-    corner.Parent = button
-
-    return button
-end
-
-local function updateButton(
-    button,
-    name,
-    enabled
-)
-
-    if enabled then
-
-        button.Text =
-            name .. ": ON"
-
-        button.BackgroundColor3 =
-            Color3.fromRGB(40, 110, 55)
-
-    else
-
-        button.Text =
-            name .. ": OFF"
-
-        button.BackgroundColor3 =
-            Color3.fromRGB(45, 45, 45)
-    end
-end
-
-local rollToggle =
-    createToggle("Auto Roll", 80)
-
-local towerToggle =
-    createToggle("Auto Tower", 125)
-
-local prestigeToggle =
-    createToggle("Prestige Tower", 260)
-
-local hideBattleToggle =
-    createToggle("Auto Hide Battle", 305)
-
-local weatherToggle =
-    createToggle("Weather Potion", 350)
-
-local fiveWeatherToggle =
-    createToggle("5 Weather Potion", 395)
-
-updateButton(
-    rollToggle,
-    "Auto Roll",
-    settings.AutoRoll
-)
-
-updateButton(
-    towerToggle,
-    "Auto Tower",
-    settings.AutoTower
-)
-
-updateButton(
-    prestigeToggle,
-    "Prestige Tower",
-    settings.PrestigeTower
-)
-
-updateButton(
-    hideBattleToggle,
-    "Auto Hide Battle",
-    settings.AutoHideBattle
-)
-
-updateButton(
-    weatherToggle,
-    "Weather Potion",
-    settings.WeatherPotion
-)
-
-updateButton(
-    fiveWeatherToggle,
-    "5 Weather Potion",
-    settings.FiveWeatherPotion
-)
-
-rollToggle.MouseButton1Click:Connect(function()
-
-    settings.AutoRoll =
-        not settings.AutoRoll
-
-    updateButton(
-        rollToggle,
-        "Auto Roll",
-        settings.AutoRoll
-    )
-
-    saveSettings()
-end)
-
-towerToggle.MouseButton1Click:Connect(function()
-
-    settings.AutoTower =
-        not settings.AutoTower
-
-    updateButton(
-        towerToggle,
-        "Auto Tower",
-        settings.AutoTower
-    )
-
-    saveSettings()
-end)
-
-prestigeToggle.MouseButton1Click:Connect(function()
-
-    settings.PrestigeTower =
-        not settings.PrestigeTower
-
-    updateButton(
-        prestigeToggle,
-        "Prestige Tower",
-        settings.PrestigeTower
-    )
-
-    saveSettings()
-end)
-
-hideBattleToggle.MouseButton1Click:Connect(function()
-
-    settings.AutoHideBattle =
-        not settings.AutoHideBattle
-
-    updateButton(
-        hideBattleToggle,
-        "Auto Hide Battle",
-        settings.AutoHideBattle
-    )
-
-    saveSettings()
-end)
-
-weatherToggle.MouseButton1Click:Connect(function()
-
-    settings.WeatherPotion =
-        not settings.WeatherPotion
-
-    updateButton(
-        weatherToggle,
-        "Weather Potion",
-        settings.WeatherPotion
-    )
-
-    saveSettings()
-end)
-
-fiveWeatherToggle.MouseButton1Click:Connect(function()
-
-    settings.FiveWeatherPotion =
-        not settings.FiveWeatherPotion
-
-    updateButton(
-        fiveWeatherToggle,
-        "5 Weather Potion",
-        settings.FiveWeatherPotion
-    )
-
-    saveSettings()
-end)
-
-task.spawn(function()
-
-    while gui.Parent do
-
-        if settings.AutoRoll then
-
-            pcall(function()
-                RollRequest:FireServer()
-            end)
-
-            task.wait(0.001)
-
-        else
-
-            task.wait(0.1)
-        end
-    end
-end)
-
-task.spawn(function()
-
-    while gui.Parent do
-
-        if settings.AutoTower then
-
-            pcall(function()
-                RunInfTower:FireServer()
-            end)
-
-            task.wait(0.001)
-
-        else
-
-            task.wait(0.1)
-        end
-    end
-end)
-
-task.spawn(function()
-
-    while gui.Parent do
-
-        if settings.PrestigeTower then
-
-            pcall(function()
-                RunPrestigeTower:FireServer()
-            end)
-
-            task.wait(0.1)
-
-        else
-
-            task.wait(0.1)
-        end
-    end
-end)
-
-task.spawn(function()
-
-    while gui.Parent do
-
-        if settings.WeatherPotion then
-
-            pcall(function()
-
-                UseItem:FireServer(
-                    "Weather Reroll",
-                    1
-                )
-
-            end)
-
-            task.wait(0.5)
-
-        else
-
-            task.wait(0.1)
-        end
-    end
-end)
-
-task.spawn(function()
-
-    while gui.Parent do
-
-        if settings.FiveWeatherPotion then
-
-            pcall(function()
-
-                UseItem:FireServer(
-                    "Weather Reroll",
-                    5
-                )
-
-            end)
-
-            task.wait(0.5)
-
-        else
-
-            task.wait(0.1)
-        end
-    end
-end)
-
-local craftingOpen = false
-local craftingHeader
-local craftingScroll
-
-local mainTab = Instance.new("TextButton")
-mainTab.Size = UDim2.new(0, 105, 0, 32)
-mainTab.Position = UDim2.new(0, 10, 0, 40)
-mainTab.BackgroundColor3 = Color3.fromRGB(40, 110, 55)
-mainTab.BorderSizePixel = 0
-mainTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-mainTab.TextSize = 14
-mainTab.Font = Enum.Font.SourceSansBold
-mainTab.Text = "Main"
-mainTab.Parent = frame
-
-local bossTab = Instance.new("TextButton")
-bossTab.Size = UDim2.new(0, 105, 0, 32)
-bossTab.Position = UDim2.new(0, 125, 0, 40)
-bossTab.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-bossTab.BorderSizePixel = 0
-bossTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-bossTab.TextSize = 14
-bossTab.Font = Enum.Font.SourceSansBold
-bossTab.Text = "Boss Farming"
-bossTab.Parent = frame
-
-for _, button in ipairs({mainTab, bossTab}) do
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = button
-end
-
-local mainContent = {
-    rollToggle,
-    towerToggle,
-    prestigeToggle,
-    hideBattleToggle,
-    weatherToggle
-}
-
-local bossScroll = Instance.new("ScrollingFrame")
-bossScroll.Size = UDim2.new(1, -20, 0, 380)
-bossScroll.Position = UDim2.new(0, 10, 0, 80)
-bossScroll.BackgroundTransparency = 1
-bossScroll.BorderSizePixel = 0
-bossScroll.ScrollBarThickness = 5
-bossScroll.CanvasSize = UDim2.new(0, 0, 0, 3 * 55)
-bossScroll.ScrollingDirection = Enum.ScrollingDirection.Y
-bossScroll.Visible = false
-bossScroll.Parent = frame
-
-local bossList = {
-    {"thriller_king", "thriller_king"},
-    {"dragon_emperor", "dragon_emperor"},
-    {"curse_tyrant", "curse_tyrant"}
-}
-
-local difficulties = {"Off", "Hard", "Extreme", "Nightmare"}
-
-local bossDropdowns = {}
-
-local function createBossDropdown(bossName, bossKey, y)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -5, 0, 35)
-    button.Position = UDim2.new(0, 0, 0, y)
-    button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-    button.BorderSizePixel = 0
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextSize = 14
-    button.Font = Enum.Font.SourceSans
-    button.Text = bossName .. " - " .. settings.BossFarming[bossKey] .. " ▼"
-    button.Parent = bossScroll
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = button
-
-    local open = false
-    local options = {}
-
-    local function closeDropdown()
-        open = false
-        for _, option in ipairs(options) do
-            option:Destroy()
-        end
-        table.clear(options)
-        button.Text = bossName .. " - " .. settings.BossFarming[bossKey] .. " ▼"
-    end
-
-    local function selectDifficulty(difficulty)
-        settings.BossFarming[bossKey] = difficulty
-        saveSettings()
-        closeDropdown()
-    end
-
-    button.MouseButton1Click:Connect(function()
-        if open then
-            closeDropdown()
-            return
-        end
-
-        open = true
-        button.Text = bossName .. " - " .. settings.BossFarming[bossKey] .. " ▲"
-
-        for index, difficulty in ipairs(difficulties) do
-            local option = Instance.new("TextButton")
-            option.Size = UDim2.new(1, -20, 0, 30)
-            option.Position = UDim2.new(
-                0,
-                10,
-                0,
-                y + 35 + ((index - 1) * 32)
+        if writefile then
+            writefile(
+                SettingsFile,
+                HttpService:JSONEncode(Settings)
             )
-            option.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-            option.BorderSizePixel = 0
-            option.TextColor3 = Color3.fromRGB(255, 255, 255)
-            option.TextSize = 13
-            option.Font = Enum.Font.SourceSans
-            option.Text = difficulty
-            option.ZIndex = 10
-            option.Parent = bossScroll
-
-            local optionCorner = Instance.new("UICorner")
-            optionCorner.CornerRadius = UDim.new(0, 5)
-            optionCorner.Parent = option
-
-            option.MouseButton1Click:Connect(function()
-                selectDifficulty(difficulty)
-            end)
-
-            table.insert(options, option)
         end
     end)
-
-    bossDropdowns[bossKey] = button
 end
 
-for bossIndex, bossInfo in ipairs(bossList) do
-    createBossDropdown(
-        bossInfo[1],
-        bossInfo[2],
-        (bossIndex - 1) * 55
-    )
-end
+--==================================================
+-- VARIABLES
+--==================================================
 
-local function setTab(tab)
+local BossEnabled = Settings.BossEnabled
+local RollEnabled = Settings.RollEnabled
+local TowerEnabled = Settings.TowerEnabled
+local WeatherEnabled = Settings.WeatherEnabled
 
-    local bossVisible = tab == "Boss"
+local GuiVisible = true
 
-    for _, object in ipairs(mainContent) do
-        object.Visible = not bossVisible
-    end
+local SelectedBoss = Settings.SelectedBoss
+local SelectedDifficulty = Settings.SelectedDifficulty
 
-    craftingHeader.Visible = not bossVisible
-    craftingScroll.Visible = not bossVisible and craftingOpen
-    bossScroll.Visible = bossVisible
-
-    mainTab.BackgroundColor3 = bossVisible
-        and Color3.fromRGB(45, 45, 45)
-        or Color3.fromRGB(40, 110, 55)
-
-    bossTab.BackgroundColor3 = bossVisible
-        and Color3.fromRGB(40, 110, 55)
-        or Color3.fromRGB(45, 45, 45)
-
-    frame.Size = bossVisible
-        and UDim2.new(0, 240, 0, 480)
-        or UDim2.new(0, 240, 0, craftingOpen and 820 or 480)
-end
-
-mainTab.MouseButton1Click:Connect(function()
-    setTab("Main")
-end)
-
-bossTab.MouseButton1Click:Connect(function()
-    setTab("Boss")
-end)
-
-local potionNames = {
-
-    "Luck Potion I",
-    "Luck Potion II",
-    "Luck Potion III",
-
-    "Battle Potion I",
-    "Battle Potion II",
-    "Battle Potion III",
-
-    "Speed Potion I",
-    "Speed Potion II",
-    "Speed Potion III",
-
-    "Weather Reroll"
+local Bosses = {
+    "thriller_king",
+    "dragon_emperor",
+    "curse_tyrant"
 }
 
-craftingHeader =
-    Instance.new("TextButton")
+local Difficulties = {
+    "Hard",
+    "Extreme",
+    "Nightmare"
+}
 
-craftingHeader.Size =
-    UDim2.new(1, -20, 0, 35)
+-- Make sure saved selections are still valid
+if not table.find(Bosses, SelectedBoss) then
+    SelectedBoss = "thriller_king"
+    Settings.SelectedBoss = SelectedBoss
+end
 
-craftingHeader.Position =
-    UDim2.new(0, 10, 0, 440)
+if not table.find(Difficulties, SelectedDifficulty) then
+    SelectedDifficulty = "Hard"
+    Settings.SelectedDifficulty = SelectedDifficulty
+end
 
-craftingHeader.BackgroundColor3 =
-    Color3.fromRGB(45, 45, 45)
+SaveSettings()
 
-craftingHeader.BorderSizePixel = 0
+--==================================================
+-- GUI
+--==================================================
 
-craftingHeader.TextColor3 =
-    Color3.fromRGB(255, 255, 255)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BossChallengeGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
 
-craftingHeader.TextSize = 15
-craftingHeader.Font = Enum.Font.SourceSansBold
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 280, 0, 355)
 
-craftingHeader.Text =
-    "Crafting ▼"
+Main.Position = UDim2.new(
+    Settings.PositionXScale,
+    Settings.PositionXOffset,
+    Settings.PositionYScale,
+    Settings.PositionYOffset
+)
 
-craftingHeader.Parent = frame
+Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Main.BorderSizePixel = 0
+Main.Parent = ScreenGui
 
-local craftingCorner =
-    Instance.new("UICorner")
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 8)
+MainCorner.Parent = Main
 
-craftingCorner.CornerRadius =
-    UDim.new(0, 6)
+--==================================================
+-- TITLE
+--==================================================
 
-craftingCorner.Parent =
-    craftingHeader
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.Text = "Boss Challenge"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
+Title.Parent = Main
 
-craftingScroll =
-    Instance.new("ScrollingFrame")
+--==================================================
+-- BOSS LABEL
+--==================================================
 
-craftingScroll.Size =
-    UDim2.new(1, -20, 0, 330)
+local BossLabel = Instance.new("TextLabel")
+BossLabel.Position = UDim2.new(0, 15, 0, 48)
+BossLabel.Size = UDim2.new(1, -30, 0, 25)
+BossLabel.BackgroundTransparency = 1
+BossLabel.Text = "Boss"
+BossLabel.TextColor3 = Color3.new(1, 1, 1)
+BossLabel.TextSize = 14
+BossLabel.Font = Enum.Font.Gotham
+BossLabel.TextXAlignment = Enum.TextXAlignment.Left
+BossLabel.Parent = Main
 
-craftingScroll.Position =
-    UDim2.new(0, 10, 0, 480)
+--==================================================
+-- BOSS DROPDOWN
+--==================================================
 
-craftingScroll.BackgroundTransparency = 1
-craftingScroll.BorderSizePixel = 0
+local BossButton = Instance.new("TextButton")
+BossButton.Position = UDim2.new(0, 15, 0, 75)
+BossButton.Size = UDim2.new(1, -30, 0, 35)
+BossButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+BossButton.Text = SelectedBoss
+BossButton.TextColor3 = Color3.new(1, 1, 1)
+BossButton.TextSize = 13
+BossButton.Font = Enum.Font.Gotham
+BossButton.Parent = Main
 
-craftingScroll.ScrollBarThickness = 5
+local BossCorner = Instance.new("UICorner")
+BossCorner.CornerRadius = UDim.new(0, 6)
+BossCorner.Parent = BossButton
 
-craftingScroll.CanvasSize =
-    UDim2.new(0, 0, 0, 10 * 37)
+--==================================================
+-- DIFFICULTY LABEL
+--==================================================
 
-craftingScroll.Visible = false
-craftingScroll.Parent = frame
+local DifficultyLabel = Instance.new("TextLabel")
+DifficultyLabel.Position = UDim2.new(0, 15, 0, 115)
+DifficultyLabel.Size = UDim2.new(1, -30, 0, 25)
+DifficultyLabel.BackgroundTransparency = 1
+DifficultyLabel.Text = "Difficulty"
+DifficultyLabel.TextColor3 = Color3.new(1, 1, 1)
+DifficultyLabel.TextSize = 14
+DifficultyLabel.Font = Enum.Font.Gotham
+DifficultyLabel.TextXAlignment = Enum.TextXAlignment.Left
+DifficultyLabel.Parent = Main
 
-for index, potionName
-    in ipairs(potionNames) do
+--==================================================
+-- DIFFICULTY DROPDOWN
+--==================================================
 
-    local button =
-        Instance.new("TextButton")
+local DifficultyButton = Instance.new("TextButton")
+DifficultyButton.Position = UDim2.new(0, 15, 0, 142)
+DifficultyButton.Size = UDim2.new(1, -30, 0, 35)
+DifficultyButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+DifficultyButton.Text = SelectedDifficulty
+DifficultyButton.TextColor3 = Color3.new(1, 1, 1)
+DifficultyButton.TextSize = 13
+DifficultyButton.Font = Enum.Font.Gotham
+DifficultyButton.Parent = Main
 
-    button.Size =
-        UDim2.new(1, -5, 0, 32)
+local DifficultyCorner = Instance.new("UICorner")
+DifficultyCorner.CornerRadius = UDim.new(0, 6)
+DifficultyCorner.Parent = DifficultyButton
 
-    button.Position =
-        UDim2.new(
-            0,
-            0,
-            0,
-            (index - 1) * 37
-        )
+--==================================================
+-- BOSS TOGGLE
+--==================================================
 
-    button.BackgroundColor3 =
-        Color3.fromRGB(45, 45, 45)
+local BossToggle = Instance.new("TextButton")
+BossToggle.Position = UDim2.new(0, 15, 0, 187)
+BossToggle.Size = UDim2.new(1, -30, 0, 32)
+BossToggle.TextColor3 = Color3.new(1, 1, 1)
+BossToggle.TextSize = 14
+BossToggle.Font = Enum.Font.GothamBold
+BossToggle.Parent = Main
 
-    button.BorderSizePixel = 0
+local BossToggleCorner = Instance.new("UICorner")
+BossToggleCorner.CornerRadius = UDim.new(0, 6)
+BossToggleCorner.Parent = BossToggle
 
-    button.TextColor3 =
-        Color3.fromRGB(255, 255, 255)
+--==================================================
+-- AUTO ROLL
+--==================================================
 
-    button.TextSize = 14
-    button.Font = Enum.Font.SourceSans
+local RollToggle = Instance.new("TextButton")
+RollToggle.Position = UDim2.new(0, 15, 0, 227)
+RollToggle.Size = UDim2.new(1, -30, 0, 32)
+RollToggle.TextColor3 = Color3.new(1, 1, 1)
+RollToggle.TextSize = 14
+RollToggle.Font = Enum.Font.GothamBold
+RollToggle.Parent = Main
 
-    updateButton(
-        button,
-        potionName,
-        settings.Crafting[potionName]
-    )
+local RollCorner = Instance.new("UICorner")
+RollCorner.CornerRadius = UDim.new(0, 6)
+RollCorner.Parent = RollToggle
 
-    button.Parent =
-        craftingScroll
+--==================================================
+-- AUTO TOWER
+--==================================================
 
-    local corner =
-        Instance.new("UICorner")
+local TowerToggle = Instance.new("TextButton")
+TowerToggle.Position = UDim2.new(0, 15, 0, 267)
+TowerToggle.Size = UDim2.new(1, -30, 0, 32)
+TowerToggle.TextColor3 = Color3.new(1, 1, 1)
+TowerToggle.TextSize = 14
+TowerToggle.Font = Enum.Font.GothamBold
+TowerToggle.Parent = Main
 
-    corner.CornerRadius =
-        UDim.new(0, 6)
+local TowerCorner = Instance.new("UICorner")
+TowerCorner.CornerRadius = UDim.new(0, 6)
+TowerCorner.Parent = TowerToggle
 
-    corner.Parent = button
+--==================================================
+-- 5 WEATHER REROLL
+--==================================================
+
+local WeatherToggle = Instance.new("TextButton")
+WeatherToggle.Position = UDim2.new(0, 15, 0, 307)
+WeatherToggle.Size = UDim2.new(1, -30, 0, 32)
+WeatherToggle.TextColor3 = Color3.new(1, 1, 1)
+WeatherToggle.TextSize = 14
+WeatherToggle.Font = Enum.Font.GothamBold
+WeatherToggle.Parent = Main
+
+local WeatherCorner = Instance.new("UICorner")
+WeatherCorner.CornerRadius = UDim.new(0, 6)
+WeatherCorner.Parent = WeatherToggle
+
+--==================================================
+-- UPDATE TOGGLE APPEARANCE
+--==================================================
+
+local function UpdateToggle(button, name, enabled)
+    if enabled then
+        button.Text = name .. ": ON"
+        button.BackgroundColor3 = Color3.fromRGB(40, 120, 40)
+    else
+        button.Text = name .. ": OFF"
+        button.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    end
+end
+
+UpdateToggle(BossToggle, "Boss Challenge", BossEnabled)
+UpdateToggle(RollToggle, "Auto Roll", RollEnabled)
+UpdateToggle(TowerToggle, "Auto Tower", TowerEnabled)
+UpdateToggle(WeatherToggle, "5 Weather Reroll", WeatherEnabled)
+
+--==================================================
+-- DROPDOWN FUNCTION
+--==================================================
+
+local function CreateDropdown(button, options, callback)
+
+    local Open = false
+    local Dropdown
 
     button.MouseButton1Click:Connect(function()
 
-        settings.Crafting[potionName] =
-            not settings.Crafting[potionName]
+        if Open then
+            if Dropdown then
+                Dropdown:Destroy()
+            end
 
-        updateButton(
-            button,
-            potionName,
-            settings.Crafting[potionName]
-        )
+            Open = false
+            return
+        end
 
-        saveSettings()
+        Open = true
+
+        Dropdown = Instance.new("Frame")
+        Dropdown.Size = UDim2.new(1, 0, 0, #options * 30)
+        Dropdown.Position = UDim2.new(0, 0, 1, 2)
+        Dropdown.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        Dropdown.BorderSizePixel = 0
+        Dropdown.ZIndex = 20
+        Dropdown.Parent = button
+
+        local Layout = Instance.new("UIListLayout")
+        Layout.Parent = Dropdown
+
+        for _, option in ipairs(options) do
+
+            local OptionButton = Instance.new("TextButton")
+            OptionButton.Size = UDim2.new(1, 0, 0, 30)
+            OptionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            OptionButton.BorderSizePixel = 0
+            OptionButton.Text = option
+            OptionButton.TextColor3 = Color3.new(1, 1, 1)
+            OptionButton.TextSize = 12
+            OptionButton.Font = Enum.Font.Gotham
+            OptionButton.ZIndex = 21
+            OptionButton.Parent = Dropdown
+
+            OptionButton.MouseButton1Click:Connect(function()
+
+                button.Text = option
+                callback(option)
+
+                if Dropdown then
+                    Dropdown:Destroy()
+                end
+
+                Open = false
+
+            end)
+        end
     end)
 end
 
-craftingHeader.MouseButton1Click:Connect(function()
+CreateDropdown(BossButton, Bosses, function(value)
 
-    craftingOpen =
-        not craftingOpen
+    SelectedBoss = value
+    Settings.SelectedBoss = value
+    SaveSettings()
 
-    if craftingOpen then
-
-        craftingHeader.Text =
-            "Crafting ▲"
-
-        craftingScroll.Visible = true
-
-        frame.Size =
-            UDim2.new(0, 240, 0, 820)
-
-    else
-
-        craftingHeader.Text =
-            "Crafting ▼"
-
-        craftingScroll.Visible = false
-
-        frame.Size =
-            UDim2.new(0, 240, 0, 480)
-    end
 end)
 
-task.spawn(function()
-    while gui.Parent do
-        for bossName, difficulty in pairs(settings.BossFarming) do
-            if difficulty ~= "Off" then
-                pcall(function()
-                    ChallengeBoss:FireServer(bossName, difficulty)
-                end)
-                task.wait(0.1)
-            end
-        end
+CreateDropdown(DifficultyButton, Difficulties, function(value)
 
-        task.wait(0.1)
-    end
+    SelectedDifficulty = value
+    Settings.SelectedDifficulty = value
+    SaveSettings()
+
 end)
 
+--==================================================
+-- TOGGLES
+--==================================================
+
+BossToggle.MouseButton1Click:Connect(function()
+
+    BossEnabled = not BossEnabled
+    Settings.BossEnabled = BossEnabled
+
+    UpdateToggle(
+        BossToggle,
+        "Boss Challenge",
+        BossEnabled
+    )
+
+    SaveSettings()
+
+end)
+
+RollToggle.MouseButton1Click:Connect(function()
+
+    RollEnabled = not RollEnabled
+    Settings.RollEnabled = RollEnabled
+
+    UpdateToggle(
+        RollToggle,
+        "Auto Roll",
+        RollEnabled
+    )
+
+    SaveSettings()
+
+end)
+
+TowerToggle.MouseButton1Click:Connect(function()
+
+    TowerEnabled = not TowerEnabled
+    Settings.TowerEnabled = TowerEnabled
+
+    UpdateToggle(
+        TowerToggle,
+        "Auto Tower",
+        TowerEnabled
+    )
+
+    SaveSettings()
+
+end)
+
+WeatherToggle.MouseButton1Click:Connect(function()
+
+    WeatherEnabled = not WeatherEnabled
+    Settings.WeatherEnabled = WeatherEnabled
+
+    UpdateToggle(
+        WeatherToggle,
+        "5 Weather Reroll",
+        WeatherEnabled
+    )
+
+    SaveSettings()
+
+end)
+
+--==================================================
+-- BOSS LOOP
+--==================================================
+
 task.spawn(function()
 
-    while gui.Parent do
+    while true do
 
-        for potionName, enabled
-            in pairs(settings.Crafting) do
+        if BossEnabled then
 
-            if enabled then
+            pcall(function()
 
-                pcall(function()
-
-                    CraftItem:FireServer(
-                        "craft",
-                        potionName
+                ReplicatedStorage
+                    :WaitForChild("challengeBoss")
+                    :FireServer(
+                        SelectedBoss,
+                        SelectedDifficulty
                     )
 
-                end)
-            end
+            end)
+
         end
 
         task.wait(0.1)
+
     end
+
 end)
 
-local hiddenBattleObjects = {}
-
-local function isFloorCounterObject(object)
-
-    local current = object
-
-    while current do
-
-        if current.Name == "floorCount" then
-            return true
-        end
-
-        current = current.Parent
-    end
-
-    return false
-end
-
-local function hideBattleObject(object)
-
-    if not object:IsA("GuiObject") then
-        return
-    end
-
-    if isFloorCounterObject(object) then
-        return
-    end
-
-    if object:IsDescendantOf(gui) then
-        return
-    end
-
-    if hiddenBattleObjects[object] == nil then
-
-        hiddenBattleObjects[object] =
-            object.Visible
-    end
-
-    object.Visible = false
-end
-
-local function restoreBattleObjects()
-
-    for object, originalVisible
-        in pairs(hiddenBattleObjects) do
-
-        if object and object.Parent then
-
-            pcall(function()
-
-                object.Visible =
-                    originalVisible
-
-            end)
-        end
-    end
-
-    table.clear(hiddenBattleObjects)
-end
-
-local function hideCardBattle()
-
-    local playerGui =
-        player:FindFirstChild("PlayerGui")
-
-    if not playerGui then
-        return
-    end
-
-    local battleUI =
-        playerGui:FindFirstChild("BattleUI")
-
-    if not battleUI then
-        return
-    end
-
-    for _, object
-        in ipairs(battleUI:GetDescendants()) do
-
-        hideBattleObject(object)
-    end
-end
+--==================================================
+-- AUTO ROLL LOOP
+--==================================================
 
 task.spawn(function()
 
-    while gui.Parent do
+    while true do
 
-        if settings.AutoHideBattle then
+        if RollEnabled then
 
-            hideCardBattle()
+            pcall(function()
 
-        else
+                ReplicatedStorage
+                    :WaitForChild("RollRequest")
+                    :FireServer()
 
-            restoreBattleObjects()
+            end)
+
         end
 
-        task.wait(0.25)
+        task.wait(0.002)
+
     end
+
 end)
 
-UserInputService.InputBegan:Connect(function(
-    input,
-    gameProcessed
-)
+--==================================================
+-- AUTO TOWER LOOP
+--==================================================
+
+task.spawn(function()
+
+    while true do
+
+        if TowerEnabled then
+
+            pcall(function()
+
+                ReplicatedStorage
+                    :WaitForChild("runInfTower")
+                    :FireServer()
+
+            end)
+
+        end
+
+        task.wait(0.001)
+
+    end
+
+end)
+
+--==================================================
+-- WEATHER LOOP
+--==================================================
+
+task.spawn(function()
+
+    while true do
+
+        if WeatherEnabled then
+
+            pcall(function()
+
+                local args = {
+                    "Weather Reroll",
+                    5
+                }
+
+                ReplicatedStorage
+                    :WaitForChild("useItem")
+                    :FireServer(unpack(args))
+
+            end)
+
+        end
+
+        task.wait(0.5)
+
+    end
+
+end)
+
+--==================================================
+-- B KEY GUI TOGGLE
+--==================================================
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
 
     if gameProcessed then
         return
     end
 
-    if input.KeyCode ==
-        Enum.KeyCode.B then
+    if input.KeyCode == Enum.KeyCode.B then
 
-        frame.Visible =
-            not frame.Visible
+        GuiVisible = not GuiVisible
+        Main.Visible = GuiVisible
+
     end
+
+end)
+
+--==================================================
+-- DRAGGING + SAVE POSITION
+--==================================================
+
+local Dragging = false
+local DragStart
+local StartPosition
+
+Main.InputBegan:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+        Dragging = true
+        DragStart = input.Position
+        StartPosition = Main.Position
+
+        input.Changed:Connect(function()
+
+            if input.UserInputState == Enum.UserInputState.End then
+
+                Dragging = false
+
+                Settings.PositionXScale = Main.Position.X.Scale
+                Settings.PositionXOffset = Main.Position.X.Offset
+                Settings.PositionYScale = Main.Position.Y.Scale
+                Settings.PositionYOffset = Main.Position.Y.Offset
+
+                SaveSettings()
+
+            end
+
+        end)
+
+    end
+
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+    if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+
+        local Delta = input.Position - DragStart
+
+        Main.Position = UDim2.new(
+            StartPosition.X.Scale,
+            StartPosition.X.Offset + Delta.X,
+            StartPosition.Y.Scale,
+            StartPosition.Y.Offset + Delta.Y
+        )
+
+    end
+
 end)
