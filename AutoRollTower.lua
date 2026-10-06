@@ -15,11 +15,9 @@ local settings = {
     FiveWeatherPotion = false,
 
     BossFarming = {
-        colossal_titan = { Hard = false, Extreme = false, Nightmare = false },
-        crimson_crow = { Hard = false, Extreme = false, Nightmare = false },
-        thriller_king = { Hard = false, Extreme = false, Nightmare = false },
-        dragon_emperor = { Hard = false, Extreme = false, Nightmare = false },
-        curse_tyrant = { Hard = false, Extreme = false, Nightmare = false }
+        thriller_king = "Off",
+        dragon_emperor = "Off",
+        curse_tyrant = "Off"
     },
 
     Crafting = {
@@ -82,12 +80,8 @@ local function loadSettings()
 
         if type(data.BossFarming) == "table" then
             for bossName in pairs(settings.BossFarming) do
-                if type(data.BossFarming[bossName]) == "table" then
-                    for difficulty in pairs(settings.BossFarming[bossName]) do
-                        if data.BossFarming[bossName][difficulty] ~= nil then
-                            settings.BossFarming[bossName][difficulty] = data.BossFarming[bossName][difficulty]
-                        end
-                    end
+                if type(data.BossFarming[bossName]) == "string" then
+                    settings.BossFarming[bossName] = data.BossFarming[bossName]
                 end
             end
         end
@@ -569,61 +563,107 @@ bossScroll.Position = UDim2.new(0, 10, 0, 80)
 bossScroll.BackgroundTransparency = 1
 bossScroll.BorderSizePixel = 0
 bossScroll.ScrollBarThickness = 5
-bossScroll.CanvasSize = UDim2.new(0, 0, 0, 15 * 42)
+bossScroll.CanvasSize = UDim2.new(0, 0, 0, 3 * 55)
 bossScroll.ScrollingDirection = Enum.ScrollingDirection.Y
 bossScroll.Visible = false
 bossScroll.Parent = frame
 
 local bossList = {
-    {"colossal_titan", "colossal_titan"},
-    {"crimson_crow", "crimson_crow"},
     {"thriller_king", "thriller_king"},
     {"dragon_emperor", "dragon_emperor"},
     {"curse_tyrant", "curse_tyrant"}
 }
 
-local difficulties = {"Hard", "Extreme", "Nightmare"}
-local bossButtons = {}
+local difficulties = {"Off", "Hard", "Extreme", "Nightmare"}
+
+local bossDropdowns = {}
+
+local function createBossDropdown(bossName, bossKey, y)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -5, 0, 35)
+    button.Position = UDim2.new(0, 0, 0, y)
+    button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    button.BorderSizePixel = 0
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 14
+    button.Font = Enum.Font.SourceSans
+    button.Text = bossName .. " - " .. settings.BossFarming[bossKey] .. " ▼"
+    button.Parent = bossScroll
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = button
+
+    local open = false
+    local options = {}
+
+    local function closeDropdown()
+        open = false
+        for _, option in ipairs(options) do
+            option:Destroy()
+        end
+        table.clear(options)
+        button.Text = bossName .. " - " .. settings.BossFarming[bossKey] .. " ▼"
+    end
+
+    local function selectDifficulty(difficulty)
+        settings.BossFarming[bossKey] = difficulty
+        saveSettings()
+        closeDropdown()
+    end
+
+    button.MouseButton1Click:Connect(function()
+        if open then
+            closeDropdown()
+            return
+        end
+
+        open = true
+        button.Text = bossName .. " - " .. settings.BossFarming[bossKey] .. " ▲"
+
+        for index, difficulty in ipairs(difficulties) do
+            local option = Instance.new("TextButton")
+            option.Size = UDim2.new(1, -20, 0, 30)
+            option.Position = UDim2.new(
+                0,
+                10,
+                0,
+                y + 35 + ((index - 1) * 32)
+            )
+            option.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+            option.BorderSizePixel = 0
+            option.TextColor3 = Color3.fromRGB(255, 255, 255)
+            option.TextSize = 13
+            option.Font = Enum.Font.SourceSans
+            option.Text = difficulty
+            option.ZIndex = 10
+            option.Parent = bossScroll
+
+            local optionCorner = Instance.new("UICorner")
+            optionCorner.CornerRadius = UDim.new(0, 5)
+            optionCorner.Parent = option
+
+            option.MouseButton1Click:Connect(function()
+                selectDifficulty(difficulty)
+            end)
+
+            table.insert(options, option)
+        end
+    end)
+
+    bossDropdowns[bossKey] = button
+end
 
 for bossIndex, bossInfo in ipairs(bossList) do
-    local bossName = bossInfo[1]
-    local bossKey = bossInfo[2]
-
-    for difficultyIndex, difficulty in ipairs(difficulties) do
-        local index = (bossIndex - 1) * 3 + difficultyIndex
-        local button = createToggle(
-            bossName .. " - " .. difficulty,
-            0
-        )
-
-        button.Parent = bossScroll
-        button.Size = UDim2.new(1, -5, 0, 35)
-        button.Position = UDim2.new(0, 0, 0, (index - 1) * 42)
-
-        updateButton(
-            button,
-            bossName .. " - " .. difficulty,
-            settings.BossFarming[bossKey][difficulty]
-        )
-
-        bossButtons[bossKey .. difficulty] = button
-
-        button.MouseButton1Click:Connect(function()
-            settings.BossFarming[bossKey][difficulty] =
-                not settings.BossFarming[bossKey][difficulty]
-
-            updateButton(
-                button,
-                bossName .. " - " .. difficulty,
-                settings.BossFarming[bossKey][difficulty]
-            )
-
-            saveSettings()
-        end)
-    end
+    createBossDropdown(
+        bossInfo[1],
+        bossInfo[2],
+        (bossIndex - 1) * 55
+    )
 end
 
 local function setTab(tab)
+
     local bossVisible = tab == "Boss"
 
     for _, object in ipairs(mainContent) do
@@ -815,16 +855,15 @@ end)
 
 task.spawn(function()
     while gui.Parent do
-        for bossName, difficultiesForBoss in pairs(settings.BossFarming) do
-            for difficulty, enabled in pairs(difficultiesForBoss) do
-                if enabled then
-                    pcall(function()
-                        ChallengeBoss:FireServer(bossName, difficulty)
-                    end)
-                    task.wait(0.1)
-                end
+        for bossName, difficulty in pairs(settings.BossFarming) do
+            if difficulty ~= "Off" then
+                pcall(function()
+                    ChallengeBoss:FireServer(bossName, difficulty)
+                end)
+                task.wait(0.1)
             end
         end
+
         task.wait(0.1)
     end
 end)
