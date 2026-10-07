@@ -18,6 +18,27 @@ Players.LocalPlayer.Idled:Connect(function()
 end)
 
 --==================================================
+-- RE-EXECUTE ON REJOIN / TELEPORT
+--==================================================
+
+local SCRIPT_URL = "https://raw.githubusercontent.com/kumakumakai/AutoRollTower/main/AutoRollTower.lua"
+
+local TeleportCode = [[
+    task.wait(3)
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/kumakumakai/AutoRollTower/main/AutoRollTower.lua"))()
+    end)
+]]
+
+pcall(function()
+    if queue_on_teleport then
+        queue_on_teleport(TeleportCode)
+    elseif queueonteleport then
+        queueonteleport(TeleportCode)
+    end
+end)
+
+--==================================================
 -- SETTINGS FILE
 --==================================================
 
