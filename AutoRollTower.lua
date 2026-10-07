@@ -7,10 +7,52 @@ local VirtualUser = game:GetService("VirtualUser")
 local player = Players.LocalPlayer
 
 --==================================================
+-- CLEAN UP PREVIOUS INSTANCE
+--==================================================
+
+local PreviousCleanup = rawget(_G, "AutoBossGUI_Cleanup")
+if PreviousCleanup then
+    pcall(PreviousCleanup)
+end
+
+local InstanceToken = {}
+_G.AutoBossGUI_InstanceToken = InstanceToken
+
+local Connections = {}
+
+local function Connect(signal, callback)
+    local connection = signal:Connect(callback)
+    table.insert(Connections, connection)
+    return connection
+end
+
+_G.AutoBossGUI_Cleanup = function()
+    -- Invalidate the previous instance so its loops stop.
+    if _G.AutoBossGUI_InstanceToken == InstanceToken then
+        _G.AutoBossGUI_InstanceToken = nil
+    end
+
+    for _, connection in ipairs(Connections) do
+        pcall(function()
+            connection:Disconnect()
+        end)
+    end
+
+    Connections = {}
+
+    pcall(function()
+        local oldGui = game:GetService("CoreGui"):FindFirstChild("BossChallengeGUI")
+        if oldGui then
+            oldGui:Destroy()
+        end
+    end)
+end
+
+--==================================================
 -- ANTI AFK
 --==================================================
 
-Players.LocalPlayer.Idled:Connect(function()
+Connect(Players.LocalPlayer.Idled, function()
     pcall(function()
         VirtualUser:CaptureController()
         VirtualUser:ClickButton2(Vector2.new())
@@ -128,6 +170,13 @@ SaveSettings()
 --==================================================
 -- GUI
 --==================================================
+
+pcall(function()
+    local oldGui = game:GetService("CoreGui"):FindFirstChild("BossChallengeGUI")
+    if oldGui then
+        oldGui:Destroy()
+    end
+end)
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "BossChallengeGUI"
@@ -323,7 +372,7 @@ local function CreateDropdown(button, options, callback)
     local Open = false
     local Dropdown
 
-    button.MouseButton1Click:Connect(function()
+    Connect(button.MouseButton1Click, function()
 
         if Open then
             if Dropdown then
@@ -396,7 +445,7 @@ end)
 -- TOGGLES
 --==================================================
 
-BossToggle.MouseButton1Click:Connect(function()
+Connect(BossToggle.MouseButton1Click, function()
 
     BossEnabled = not BossEnabled
     Settings.BossEnabled = BossEnabled
@@ -411,7 +460,7 @@ BossToggle.MouseButton1Click:Connect(function()
 
 end)
 
-RollToggle.MouseButton1Click:Connect(function()
+Connect(RollToggle.MouseButton1Click, function()
 
     RollEnabled = not RollEnabled
     Settings.RollEnabled = RollEnabled
@@ -426,7 +475,7 @@ RollToggle.MouseButton1Click:Connect(function()
 
 end)
 
-TowerToggle.MouseButton1Click:Connect(function()
+Connect(TowerToggle.MouseButton1Click, function()
 
     TowerEnabled = not TowerEnabled
     Settings.TowerEnabled = TowerEnabled
@@ -441,7 +490,7 @@ TowerToggle.MouseButton1Click:Connect(function()
 
 end)
 
-WeatherToggle.MouseButton1Click:Connect(function()
+Connect(WeatherToggle.MouseButton1Click, function()
 
     WeatherEnabled = not WeatherEnabled
     Settings.WeatherEnabled = WeatherEnabled
@@ -463,6 +512,9 @@ end)
 task.spawn(function()
 
     while true do
+        if _G.AutoBossGUI_InstanceToken ~= InstanceToken then
+            break
+        end
 
         if BossEnabled then
 
@@ -492,6 +544,9 @@ end)
 task.spawn(function()
 
     while true do
+        if _G.AutoBossGUI_InstanceToken ~= InstanceToken then
+            break
+        end
 
         if RollEnabled then
 
@@ -518,6 +573,9 @@ end)
 task.spawn(function()
 
     while true do
+        if _G.AutoBossGUI_InstanceToken ~= InstanceToken then
+            break
+        end
 
         if TowerEnabled then
 
@@ -544,6 +602,9 @@ end)
 task.spawn(function()
 
     while true do
+        if _G.AutoBossGUI_InstanceToken ~= InstanceToken then
+            break
+        end
 
         if WeatherEnabled then
 
@@ -572,7 +633,7 @@ end)
 -- B KEY GUI TOGGLE
 --==================================================
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
+Connect(UserInputService.InputBegan, function(input, gameProcessed)
 
     if gameProcessed then
         return
@@ -595,7 +656,7 @@ local Dragging = false
 local DragStart
 local StartPosition
 
-Main.InputBegan:Connect(function(input)
+Connect(Main.InputBegan, function(input)
 
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
 
@@ -603,7 +664,7 @@ Main.InputBegan:Connect(function(input)
         DragStart = input.Position
         StartPosition = Main.Position
 
-        input.Changed:Connect(function()
+        Connect(input.Changed, function()
 
             if input.UserInputState == Enum.UserInputState.End then
 
@@ -624,7 +685,7 @@ Main.InputBegan:Connect(function(input)
 
 end)
 
-UserInputService.InputChanged:Connect(function(input)
+Connect(UserInputService.InputChanged, function(input)
 
     if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
 
